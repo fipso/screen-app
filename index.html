@@ -71,7 +71,7 @@
 
     .tomorrow-wrapper {
       margin-top: 12rem;
-      margin-bottom: 12rem;
+      margin-bottom: 18rem;
       display: flex;
       justify-content: center;
     }
@@ -147,6 +147,10 @@
     </div>
   </div>
 
+  <div>
+    <h1>784er: <span id="784er"></span></h1>
+  </div>
+
   <script>
     const formatter = new Intl.NumberFormat("de-DE", {
       style: "currency",
@@ -180,6 +184,26 @@
       } else {
         document.body.classList.add("light");
         document.body.classList.remove("dark");
+      }
+
+      //Update 784er depature
+      const busReq = await fetch(
+        "https://www.vrr.de/vrr-efa/XML_TRIP_REQUEST2?allInterchangesAsLegs=1&calcOneDirection=1&changeSpeed=normal&convertAddressesITKernel2LocationServer=1&convertCoord2LocationServer=1&convertCrossingsITKernel2LocationServer=1&convertPOIsITKernel2LocationServer=1&convertStopsPTKernel2LocationServer=1&coordOutputDistance=1&coordOutputFormat=WGS84%5Bdd.ddddd%5D&genC=1&genMaps=0&imparedOptionsActive=1&inclMOT_0=true&inclMOT_1=true&inclMOT_10=true&inclMOT_11=true&inclMOT_12=true&inclMOT_13=true&inclMOT_17=true&inclMOT_18=true&inclMOT_19=true&inclMOT_2=true&inclMOT_3=true&inclMOT_4=true&inclMOT_5=true&inclMOT_6=true&inclMOT_7=true&inclMOT_8=true&inclMOT_9=true&includedMeans=checkbox&itOptionsActive=1&itdTripDateTimeDepArr=dep&language=de&lineRestriction=400&locationServerActive=1&maxChanges=9&name_destination=de%3A05158%3A13980&name_origin=de%3A05158%3A19001&outputFormat=rapidJSON&ptOptionsActive=1&routeType=LEASTTIME&serverInfo=1&sl3plusTripMacro=1&trITMOTvalue100=10&type_destination=any&type_notVia=any&type_origin=any&type_via=any&useElevationData=1&useProxFootSearch=true&useRealtime=1&useUT=1&version=10.5.17.3&vrrTripMacro=1",
+      );
+      const busData = await busReq.json();
+
+      const depature = new Date(
+        busData.journeys[0].legs[0].origin.departureTimeEstimated,
+      ); //data.TripList.Trip[0].LegList.Leg[0].Origin.time;
+      const parts = depature.toLocaleTimeString("de-DE").split(":");
+      document.getElementById("784er").innerHTML = `${parts[0]}:${parts[1]}`;
+
+      //Set color to red if bus is late by 5min
+      const diff = (depature - now) / 1000 / 60;
+      if (diff < 5) {
+        document.getElementById("784er").style.color = "red";
+      } else {
+        document.getElementById("784er").style.color = "green";
       }
     }
 
