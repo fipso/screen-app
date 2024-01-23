@@ -7,13 +7,33 @@
       font-family: "Arial";
     }
 
-    #crypto {
+    .crypto {
       display: flex;
       flex-wrap: wrap;
       gap: 2em;
       justify-content: space-evenly;
-
       margin-bottom: 2em;
+
+      position: absolute;
+      /* To overlay the divs */
+      width: 100%;
+    }
+
+    .crypto.hidden {
+      display: none;
+    }
+
+    .crypto.sliding-out {
+      animation: slideOutLeft 1s forwards;
+    }
+
+    .crypto.sliding-in {
+      animation: slideInLeft 1s forwards;
+    }
+
+    .crypto-container {
+      position: relative;
+      min-height: 500px;
     }
 
     .dark {
@@ -55,17 +75,52 @@
       display: flex;
       justify-content: center;
     }
+
+    @keyframes slideOutLeft {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+
+      to {
+        transform: translateX(-100%);
+        opacity: 0;
+      }
+    }
+
+    @keyframes slideInLeft {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
   </style>
 </head>
 
 <body>
   <h1 id="time"></h1>
 
-  <div id="crypto">
-    <h1>Bitcoin: <span id="Bitcoin"></span></h1>
-    <h1>Ethereum: <span id="Ethereum"></span></h1>
-    <h1>Solana: <span id="Solana"></span></h1>
-    <h1>Monero: <span id="Monero"></span></h1>
+  <div class="crypto-container">
+    <div class="crypto" id="crypto-main">
+      <h1>Bitcoin: <span id="Bitcoin"></span></h1>
+      <h1>Ethereum: <span id="Ethereum"></span></h1>
+      <h1>Solana: <span id="Solana"></span></h1>
+      <h1>Monero: <span id="Monero"></span></h1>
+    </div>
+
+    <div class="crypto hidden" id="crypto-meme">
+      <h1>IOTA: <span id="IOTA"></span></h1>
+      <h1>Render: <span id="Render"></span></h1>
+      <h1>Raydium: <span id="Raydium"></span></h1>
+      <h1>Optimism: <span id="Optimism"></span></h1>
+      <h1>ApeCoin: <span id="ApeCoin"></span></h1>
+      <h1>XRP: <span id="XRP"></span></h1>
+    </div>
   </div>
 
   <div>
@@ -101,7 +156,7 @@
     async function update() {
       // Fetch data
       const req = await fetch(
-        "https://3rdparty-apis.coinmarketcap.com/v1/cryptocurrency/widget?id=1,1027,5426,328&convert_id=2790",
+        "https://3rdparty-apis.coinmarketcap.com/v1/cryptocurrency/widget?id=1,1027,5426,328,18876,1720,11840,8526,5690,52&convert_id=2790",
       );
       const data = await req.json();
 
@@ -128,17 +183,57 @@
       }
     }
 
+    // Update crypto
     setInterval(async () => {
       update();
-    }, 1000 * 30);
+    }, 30_000);
     update();
 
-    // Updat time
+    // Alternate between meme and main every 10s
+    let isAnimating = false; // Flag to track animation state
+
+    function toggleCryptoDivs() {
+      const main = document.getElementById("crypto-main");
+      const meme = document.getElementById("crypto-meme");
+
+      if (isAnimating) return; // Prevent animation overlap
+      isAnimating = true;
+
+      if (main.classList.contains("hidden")) {
+        main.classList.remove("hidden");
+        main.classList.add("sliding-in");
+        meme.classList.add("sliding-out");
+
+        setTimeout(() => {
+          meme.classList.add("hidden");
+          main.classList.remove("sliding-in");
+          meme.classList.remove("sliding-out");
+          isAnimating = false;
+        }, 1000); // Duration of the animation
+      } else {
+        meme.classList.remove("hidden");
+        meme.classList.add("sliding-in");
+        main.classList.add("sliding-out");
+
+        setTimeout(() => {
+          main.classList.add("hidden");
+          meme.classList.remove("sliding-in");
+          main.classList.remove("sliding-out");
+          isAnimating = false;
+        }, 1000);
+      }
+    }
+
+    // Initialize and set the interval
+    toggleCryptoDivs(); // Call it once to set the initial state
+    setInterval(toggleCryptoDivs, 20_000);
+
+    // Update time
     setInterval(() => {
       const now = new Date();
-      document.querySelector("#time").innerHTML = now.toLocaleTimeString("de-DE");
+      document.querySelector("#time").innerHTML =
+        now.toLocaleTimeString("de-DE");
     }, 500);
-
   </script>
 </body>
 
