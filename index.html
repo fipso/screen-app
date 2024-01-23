@@ -71,7 +71,7 @@
 
     .tomorrow-wrapper {
       margin-top: 12rem;
-      margin-bottom: 18rem;
+      margin-bottom: 14rem;
       display: flex;
       justify-content: center;
     }
@@ -197,14 +197,20 @@
 
       const depature = new Date(
         busData.journeys[0].legs[0].origin.departureTimeEstimated,
-      ); //data.TripList.Trip[0].LegList.Leg[0].Origin.time;
+      );
+      const plannedDepature = new Date(
+        busData.journeys[0].legs[0].origin.departureTimePlanned,
+      );
+
       const parts = depature.toLocaleTimeString("de-DE").split(":");
       document.getElementById("784er").innerHTML = `${parts[0]}:${parts[1]}`;
 
       //Set color to red if bus is late by 5min
-      const diff = (depature - now) / 1000 / 60;
-      if (diff < 5) {
+      const diff = (depature - plannedDepature) / 1000 / 60;
+      if (diff > 5) {
         document.getElementById("784er").style.color = "red";
+      } else if (diff > 3) {
+        document.getElementById("784er").style.color = "orage";
       } else {
         document.getElementById("784er").style.color = "green";
       }
