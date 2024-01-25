@@ -195,11 +195,16 @@
       );
       const busData = await busReq.json();
 
+      // Find next 784er journey
+      const journey = busData.journeys.find(
+        (j) => j.legs[0].transportation.number === "784",
+      );
+
       const depature = new Date(
-        busData.journeys[0].legs[0].origin.departureTimeEstimated,
+        journey.legs[0].origin.departureTimeEstimated,
       );
       const plannedDepature = new Date(
-        busData.journeys[0].legs[0].origin.departureTimePlanned,
+        journey.legs[0].origin.departureTimePlanned,
       );
 
       const parts = depature.toLocaleTimeString("de-DE").split(":");
