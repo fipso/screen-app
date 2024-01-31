@@ -1,3 +1,3 @@
 #!/bin/bash
-scp index.html fipso@raspberrypi:/home/fipso/screen-app/
-ssh fipso@raspberrypi DISPLAY=:0.0 xdotool key F5
+rsync -avz --exclude ".git" --exclude "screen-app" . fipso@raspberrypi:/home/fipso/screen-app/
+ssh fipso@raspberrypi "killall screen-app || true; cd screen-app; go build .; DISPLAY=:0.0 ./screen-app &"
