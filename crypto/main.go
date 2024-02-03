@@ -39,8 +39,14 @@ func main() {
 		go watchCurrency(symbol)
 	}
 
+	lastUpdate := time.Now()
 	for {
 		<-pricesUpdated
+		if time.Now().Sub(lastUpdate) < time.Second*20 {
+			continue
+		}
+		lastUpdate = time.Now()
+
 		// Sort cyrrencies by price
 		var sortedCurrencies []*Currency
 		for _, currency := range currencies {
