@@ -66,7 +66,8 @@ func main() {
 			if delta := oneHourDelta(currency); delta > 0 {
 				fmt.Printf("\033[32m")
 			} else if delta < 0 {
-				fmt.Printf("\033[31m")
+                                // light red
+				fmt.Printf("\033[91m")
 			}
 			fmt.Printf("%10s: %.2f $\n", currency.name, currency.price)
 			// Reset color
