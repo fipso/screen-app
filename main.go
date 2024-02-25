@@ -1,7 +1,7 @@
 package main
 
 func main(){
-  go PollBinance()
+  go pollBinance()
   
-  RunGameUI()
+  runGameUI()
 }

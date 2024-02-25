@@ -12,7 +12,6 @@ import (
 
 const FIAT_SYMBOL = "USDT"
 
-var pricesUpdated chan bool
 var pricesText string
 
 type Currency struct {
@@ -33,43 +32,27 @@ var currencies = map[string]*Currency{
 	"IOTA": {"Miota", 0, make([]binance.WsKlineEvent, 0)},
 }
 
-func PollBinance() {
-	pricesUpdated = make(chan bool)
-
+func pollBinance() {
 	for symbol := range currencies {
 		go watchCurrency(symbol)
 	}
+}
 
-	for {
-		<-pricesUpdated
-
-		// Sort cyrrencies by price
-		var sortedCurrencies []*Currency
-		for _, currency := range currencies {
-			sortedCurrencies = append(sortedCurrencies, currency)
-		}
-		for i := 0; i < len(sortedCurrencies); i++ {
-			for j := i + 1; j < len(sortedCurrencies); j++ {
-				if sortedCurrencies[i].price < sortedCurrencies[j].price {
-					sortedCurrencies[i], sortedCurrencies[j] = sortedCurrencies[j], sortedCurrencies[i]
-				}
+func sortedPrices() []*Currency {
+	// Sort cyrrencies by price
+	var sortedCurrencies []*Currency
+	for _, currency := range currencies {
+		sortedCurrencies = append(sortedCurrencies, currency)
+	}
+	for i := 0; i < len(sortedCurrencies); i++ {
+		for j := i + 1; j < len(sortedCurrencies); j++ {
+			if sortedCurrencies[i].price < sortedCurrencies[j].price {
+				sortedCurrencies[i], sortedCurrencies[j] = sortedCurrencies[j], sortedCurrencies[i]
 			}
 		}
-
-		txt := ""
-		for _, currency := range sortedCurrencies {
-			// Set color depending on 1h delta of currency
-			// if delta := oneHourDelta(currency); delta > 0 {
-			// 	fmt.Printf("\033[32m")
-			// } else if delta < 0 {
-			// 	// // light red
-			// 	fmt.Printf("\033[91m")
-			// }
-			txt = fmt.Sprintf("%s%10s: %.2f $\n", txt, currency.name, currency.price)
-		}
-
-                pricesText = txt
 	}
+
+	return sortedCurrencies
 }
 
 func watchCurrency(symbol string) {
@@ -81,8 +64,6 @@ func watchCurrency(symbol string) {
 		if err != nil {
 			fmt.Println(err)
 		}
-
-		pricesUpdated <- true
 	}
 	errHandler := func(err error) {
 		fmt.Println(err)
