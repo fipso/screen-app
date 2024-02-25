@@ -13,6 +13,7 @@ import (
 const FIAT_SYMBOL = "USDT"
 
 var pricesUpdated chan bool
+var pricesText string
 
 type Currency struct {
 	name    string
@@ -32,20 +33,15 @@ var currencies = map[string]*Currency{
 	"IOTA": {"Miota", 0, make([]binance.WsKlineEvent, 0)},
 }
 
-func main() {
+func PollBinance() {
 	pricesUpdated = make(chan bool)
 
 	for symbol := range currencies {
 		go watchCurrency(symbol)
 	}
 
-	lastUpdate := time.Now()
 	for {
 		<-pricesUpdated
-		if time.Now().Sub(lastUpdate) < time.Second*20 {
-			continue
-		}
-		lastUpdate = time.Now()
 
 		// Sort cyrrencies by price
 		var sortedCurrencies []*Currency
@@ -60,19 +56,19 @@ func main() {
 			}
 		}
 
-		fmt.Print("\033[H\033[2J")
+		txt := ""
 		for _, currency := range sortedCurrencies {
 			// Set color depending on 1h delta of currency
-			if delta := oneHourDelta(currency); delta > 0 {
-				fmt.Printf("\033[32m")
-			} else if delta < 0 {
-                                // light red
-				fmt.Printf("\033[91m")
-			}
-			fmt.Printf("%10s: %.2f $\n", currency.name, currency.price)
-			// Reset color
-			fmt.Printf("\033[0m")
+			// if delta := oneHourDelta(currency); delta > 0 {
+			// 	fmt.Printf("\033[32m")
+			// } else if delta < 0 {
+			// 	// // light red
+			// 	fmt.Printf("\033[91m")
+			// }
+			txt = fmt.Sprintf("%s%10s: %.2f $\n", txt, currency.name, currency.price)
 		}
+
+                pricesText = txt
 	}
 }
 
