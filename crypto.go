@@ -24,7 +24,7 @@ var currencies = map[string]*Currency{
 	"BTC":  {"Bitcoin", 0, make([]binance.WsKlineEvent, 0)},
 	"ETH":  {"Ethereum", 0, make([]binance.WsKlineEvent, 0)},
 	"SOL":  {"Solana", 0, make([]binance.WsKlineEvent, 0)},
-	"XMR":  {"Monero", 0, make([]binance.WsKlineEvent, 0)},
+	//"XMR":  {"Monero", 0, make([]binance.WsKlineEvent, 0)},
 	"XRP":  {"Ripple", 0, make([]binance.WsKlineEvent, 0)},
 	"APE":  {"Ape Coin", 0, make([]binance.WsKlineEvent, 0)},
 	"RNDR": {"Render", 0, make([]binance.WsKlineEvent, 0)},

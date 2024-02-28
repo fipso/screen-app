@@ -1,7 +1,10 @@
 package main
 
-func main(){
-  go pollBinance()
-  
-  runGameUI()
+const SCALE = 2
+
+func main() {
+	go pollBinance()
+	go pollBusTimes()
+
+	runGameUI()
 }
