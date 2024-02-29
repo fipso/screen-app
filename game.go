@@ -23,6 +23,14 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(bgColor)
 
+	offsetTop := 0
+
+	// Time
+	text.Draw(screen, time.Now().Format("15:04"), basicfont.Face7x13, 20, offsetTop+16, textColor)
+
+	offsetTop += 18
+
+	// Binance Ticker
 	prices := sortedPrices()
 	for i, currency := range prices {
 		c := textColor
@@ -32,10 +40,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		} else if delta < 0 {
 			c = color.RGBA{255, 0, 0, 255}
 		}
-		text.Draw(screen, fmt.Sprintf("%-9s: %.4f", currency.name, currency.price), basicfont.Face7x13, 20, 20+16*i, c)
+		text.Draw(screen, fmt.Sprintf("%-9s: %.2f", currency.name, currency.price), basicfont.Face7x13, 20, offsetTop+20+16*i, c)
 	}
 
-	offsetTop := 20 + 16*len(prices)
+	// Bus Times
+	offsetTop += 10 + 16*len(prices)
 	busKeys := []string{"W. Tal", "D. Dorf"}
 	for i, key := range busKeys {
 		text.Draw(screen, key, basicfont.Face7x13, 20+64*i, offsetTop+16, textColor)
@@ -49,6 +58,16 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			text.Draw(screen, entry.time.Format("15:04"), basicfont.Face7x13, 20+64*i, offsetTop+32+16*j, c)
 		}
 	}
+
+	// Pollen
+	offsetTop += 128
+	pollenS := "Pollen: "
+	pollenKeys := []string{"G", "B", "H"}
+	for _, key := range pollenKeys {
+		v := pollenStrength[key]
+		pollenS += fmt.Sprintf("%s%s ", key, v)
+	}
+	text.Draw(screen, pollenS, basicfont.Face7x13, 20, offsetTop, textColor)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -69,7 +88,7 @@ func runGameUI() {
 		time.Sleep(time.Second)
 	}()
 
-	ebiten.SetWindowSize(1080, 1920)
+	//ebiten.SetWindowSize(1080, 1920)
 	ebiten.SetWindowTitle("Screep App Game UI")
 	ebiten.SetFullscreen(true)
 	if err := ebiten.RunGame(&Game{}); err != nil {
