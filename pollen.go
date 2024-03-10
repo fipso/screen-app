@@ -2,10 +2,18 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/text"
 )
+
+type PollenUi struct {
+	screen *ebiten.Image
+}
 
 type PollenData struct {
 	Name       string `json:"name"`
@@ -118,4 +126,22 @@ func fetchPollen() error {
 	pollenStrength["H"] = entry.Pollen.Hasel.Today
 
 	return nil
+}
+
+func (ui *PollenUi) Init() {
+	ui.screen = ebiten.NewImage(WIDTH, fontHeight+linePadding)
+}
+
+func (ui *PollenUi) Draw() *ebiten.Image {
+        ui.screen.Fill(bgColor)
+
+	pollenS := "Pollen: "
+	pollenKeys := []string{"G", "B", "H"}
+	for _, key := range pollenKeys {
+		v := pollenStrength[key]
+		pollenS += fmt.Sprintf("%s%s ", key, v)
+	}
+	text.Draw(ui.screen, pollenS, defaultFont, 0, fontHeight, textColor)
+
+	return ui.screen
 }

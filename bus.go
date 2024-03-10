@@ -3,11 +3,19 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"image/color"
 	"io"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/text"
 )
+
+type BusUi struct {
+	screen *ebiten.Image
+}
 
 type BusData struct {
 	ServerInfo struct {
@@ -342,4 +350,28 @@ JOURNEY_LOOP:
 	}
 
 	return res
+}
+
+func (ui *BusUi) Init() {
+	ui.screen = ebiten.NewImage(WIDTH, (fontHeight+linePadding)*7)
+}
+
+func (ui *BusUi) Draw() *ebiten.Image {
+        ui.screen.Fill(bgColor)
+
+	busKeys := []string{"W. Tal", "D. Dorf"}
+	for i, key := range busKeys {
+		text.Draw(ui.screen, key, defaultFont, 64*i, fontHeight, textColor)
+		times := busTimes[key]
+		for j, entry := range times {
+			c := textColor
+			if entry.delay.Minutes() > 3 {
+				c = color.RGBA{255, 0, 0, 255}
+			}
+
+			text.Draw(ui.screen, entry.time.Format("15:04"), defaultFont, 64*i, (fontHeight+linePadding)*(j+2), c)
+		}
+	}
+
+	return ui.screen
 }

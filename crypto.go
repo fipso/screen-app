@@ -2,12 +2,15 @@ package main
 
 import (
 	"fmt"
+	"image/color"
 	"log"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/adshao/go-binance/v2"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/text"
 )
 
 const FIAT_SYMBOL = "USDT"
@@ -20,16 +23,30 @@ type Currency struct {
 	history []binance.WsKlineEvent
 }
 
+type CryptoUi struct {
+	screen *ebiten.Image
+}
+
 var currencies = map[string]*Currency{
-	"BTC":  {"Bitcoin", 0, make([]binance.WsKlineEvent, 0)},
-	"ETH":  {"Ethereum", 0, make([]binance.WsKlineEvent, 0)},
-	"SOL":  {"Solana", 0, make([]binance.WsKlineEvent, 0)},
+	"BTC": {"Bitcoin", 0, make([]binance.WsKlineEvent, 0)},
+	"ETH": {"Ethereum", 0, make([]binance.WsKlineEvent, 0)},
+	"SOL": {"Solana", 0, make([]binance.WsKlineEvent, 0)},
 	//"XMR":  {"Monero", 0, make([]binance.WsKlineEvent, 0)},
-	"XRP":  {"Ripple", 0, make([]binance.WsKlineEvent, 0)},
-	"APE":  {"Ape Coin", 0, make([]binance.WsKlineEvent, 0)},
-	"RNDR": {"Render", 0, make([]binance.WsKlineEvent, 0)},
-	"RAY":  {"Raydium", 0, make([]binance.WsKlineEvent, 0)},
-	"IOTA": {"Miota", 0, make([]binance.WsKlineEvent, 0)},
+	"XRP":   {"Ripple", 0, make([]binance.WsKlineEvent, 0)},
+	"APE":   {"Ape Coin", 0, make([]binance.WsKlineEvent, 0)},
+	"RNDR":  {"Render", 0, make([]binance.WsKlineEvent, 0)},
+	"RAY":   {"Raydium", 0, make([]binance.WsKlineEvent, 0)},
+	"IOTA":  {"Miota", 0, make([]binance.WsKlineEvent, 0)},
+	"PEPE":  {"Pepe", 0, make([]binance.WsKlineEvent, 0)},
+	"SHIB":  {"Shiba Inu", 0, make([]binance.WsKlineEvent, 0)},
+	"DOGE":  {"Doge", 0, make([]binance.WsKlineEvent, 0)},
+	"APT":   {"Aptos", 0, make([]binance.WsKlineEvent, 0)},
+	"ADA":   {"Cardano", 0, make([]binance.WsKlineEvent, 0)},
+	"MATIC": {"Polygon", 0, make([]binance.WsKlineEvent, 0)},
+	"BNB":   {"BNB", 0, make([]binance.WsKlineEvent, 0)},
+	"Link":  {"ChainLink", 0, make([]binance.WsKlineEvent, 0)},
+	"EUR":   {"Euro", 0, make([]binance.WsKlineEvent, 0)},
+	// TODO Toincoin, Bitgert
 }
 
 func pollBinance() {
@@ -105,4 +122,26 @@ func oneHourDelta(currency *Currency) float64 {
 		log.Fatal(err)
 	}
 	return currency.price - f
+}
+
+func (ui *CryptoUi) Init() {
+	ui.screen = ebiten.NewImage(WIDTH, (fontHeight+linePadding)*len(currencies))
+}
+
+func (ui *CryptoUi) Draw() *ebiten.Image {
+	ui.screen.Fill(bgColor)
+
+	prices := sortedPrices()
+	for i, currency := range prices {
+		c := textColor
+		delta := oneHourDelta(currency)
+		if delta > 0 {
+			c = color.RGBA{20, 200, 20, 255}
+		} else if delta < 0 {
+			c = color.RGBA{255, 0, 0, 255}
+		}
+		text.Draw(ui.screen, fmt.Sprintf("%-9s: %.8f", currency.name, currency.price), defaultFont, 0, (fontHeight+linePadding)*(i+1), c)
+	}
+
+	return ui.screen
 }
