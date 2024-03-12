@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image/color"
 	"log"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -98,13 +99,13 @@ func watchCurrency(symbol string) {
 	<-doneC
 }
 
-func oneHourDelta(currency *Currency) float64 {
+func calcDelta(currency *Currency, span time.Duration) float64 {
 	if len(currency.history) == 0 {
 		return 0
 	}
 
 	for _, event := range currency.history {
-		if time.Now().Sub(time.Unix(event.Kline.EndTime/1000, 0)) < time.Hour {
+		if time.Now().Sub(time.Unix(event.Kline.EndTime/1000, 0)) < span {
 			s := event.Kline.Close
 			f, err := strconv.ParseFloat(s, 64)
 			if err != nil {
@@ -125,7 +126,7 @@ func oneHourDelta(currency *Currency) float64 {
 }
 
 func (ui *CryptoUi) Init() {
-	ui.screen = ebiten.NewImage(WIDTH, (fontHeight+linePadding)*len(currencies))
+	ui.screen = ebiten.NewImage(WIDTH, (fontHeight+linePadding)*len(currencies)+2)
 }
 
 func (ui *CryptoUi) Draw() *ebiten.Image {
@@ -134,13 +135,23 @@ func (ui *CryptoUi) Draw() *ebiten.Image {
 	prices := sortedPrices()
 	for i, currency := range prices {
 		c := textColor
-		delta := oneHourDelta(currency)
+		delta := calcDelta(currency, time.Hour*24)
 		if delta > 0 {
 			c = color.RGBA{20, 200, 20, 255}
 		} else if delta < 0 {
 			c = color.RGBA{255, 0, 0, 255}
 		}
-		text.Draw(ui.screen, fmt.Sprintf("%-9s: %.8f", currency.name, currency.price), defaultFont, 0, (fontHeight+linePadding)*(i+1), c)
+
+		value := fmt.Sprintf("%.2f", currency.price)
+		if currency.price > 1000 {
+			value = fmt.Sprintf("%.2fk", currency.price/1000)
+		}
+		if currency.price < 0.01 {
+			value = fmt.Sprintf("%.2e", currency.price)
+		}
+
+		line := fmt.Sprintf("%-9s %-8s %.1f%%", currency.name, value, math.Abs(delta/currency.price*100))
+		text.Draw(ui.screen, line, defaultFont, 0, (fontHeight+linePadding)*(i+1), c)
 	}
 
 	return ui.screen
