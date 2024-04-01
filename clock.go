@@ -19,7 +19,12 @@ func (ui *ClockUi) Init() {
 	ui.moscowLoc, _ = time.LoadLocation("Europe/Moscow")
 	ui.washingtonLoc, _ = time.LoadLocation("America/New_York")
 
-	ui.screen = ebiten.NewImage(WIDTH, fontHeight)
+	width, height := ui.Bounds()
+	ui.screen = ebiten.NewImage(width, height)
+}
+
+func (ui *ClockUi) Bounds() (width, height int) {
+	return WIDTH, fontHeight
 }
 
 func (ui *ClockUi) Draw() *ebiten.Image {

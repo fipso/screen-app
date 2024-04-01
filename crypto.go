@@ -126,7 +126,12 @@ func calcDelta(currency *Currency, span time.Duration) float64 {
 }
 
 func (ui *CryptoUi) Init() {
-	ui.screen = ebiten.NewImage(WIDTH, (fontHeight+linePadding)*len(currencies)+2)
+	width, height := ui.Bounds()
+	ui.screen = ebiten.NewImage(width, height)
+}
+
+func (ui *CryptoUi) Bounds() (width, height int) {
+	return WIDTH, (fontHeight+linePadding)*len(currencies) + 2
 }
 
 func (ui *CryptoUi) Draw() *ebiten.Image {

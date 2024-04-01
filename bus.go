@@ -353,11 +353,16 @@ JOURNEY_LOOP:
 }
 
 func (ui *BusUi) Init() {
-	ui.screen = ebiten.NewImage(WIDTH, (fontHeight+linePadding)*7)
+	width, height := ui.Bounds()
+	ui.screen = ebiten.NewImage(width, height)
+}
+
+func (ui *BusUi) Bounds() (width, height int) {
+	return WIDTH, (fontHeight + linePadding) * 7
 }
 
 func (ui *BusUi) Draw() *ebiten.Image {
-        ui.screen.Fill(bgColor)
+	ui.screen.Fill(bgColor)
 
 	busKeys := []string{"W. Tal", "D. Dorf"}
 	for i, key := range busKeys {

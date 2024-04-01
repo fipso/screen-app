@@ -129,11 +129,16 @@ func fetchPollen() error {
 }
 
 func (ui *PollenUi) Init() {
-	ui.screen = ebiten.NewImage(WIDTH, fontHeight+linePadding)
+	width, height := ui.Bounds()
+	ui.screen = ebiten.NewImage(width, height)
+}
+
+func (ui *PollenUi) Bounds() (width, height int) {
+	return WIDTH, fontHeight + linePadding
 }
 
 func (ui *PollenUi) Draw() *ebiten.Image {
-        ui.screen.Fill(bgColor)
+	ui.screen.Fill(bgColor)
 
 	pollenS := "Pollen: "
 	pollenKeys := []string{"G", "B", "H"}
