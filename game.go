@@ -3,11 +3,13 @@ package main
 import (
 	"image/color"
 	"log"
+	"os"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/basicfont"
+	"golang.org/x/image/font/opentype"
 )
 
 type UiElement interface {
@@ -17,14 +19,17 @@ type UiElement interface {
 }
 
 // Ebiten units
-const WIDTH = 360 / 2
-const HEIGHT = 640 / 2
+//const WIDTH = 360 / 2
+//const HEIGHT = 640 / 2
+
+const WIDTH = 1080
+const HEIGHT = 1920
 
 var textColor = color.RGBA{255, 255, 255, 255}
 var bgColor = color.RGBA{0, 0, 0, 255}
 var defaultFont font.Face = basicfont.Face7x13
-var fontHeight = 10
-var linePadding = 2
+var fontHeight = 72
+var linePadding = 5
 
 type Game struct {
 	stackLayout []UiElement
@@ -52,7 +57,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
+
+	//s := ebiten.DeviceScaleFactor()
+	//return int(float64(outsideWidth) * s), int(float64(outsideHeight) * s)
 	return WIDTH, HEIGHT
+	//return 1080, 1920
 }
 
 func runGameUI() {
@@ -96,26 +105,25 @@ func runGameUI() {
 	}()
 
 	//Load font
-	// fontData, err := os.ReadFile("assets/fonts/OpenSans-Regular.ttf")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	fontData, err := os.ReadFile("assets/fonts/MajorMonoDisplay-Regular.ttf")
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// tt, err := opentype.Parse(fontData)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	tt, err := opentype.Parse(fontData)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// defaultFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
-	// 	Size:    12,
-	// 	DPI:     96,
-	// 	Hinting: font.HintingFull,
-	// })
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	defaultFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
+		Size: 72,
+		DPI:  72,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	//ebiten.SetWindowSize(1080, 1920)
+	ebiten.SetWindowSize(1080, 1920)
 	ebiten.SetWindowTitle("Screep App Game UI")
 	ebiten.SetFullscreen(true)
 	if err := ebiten.RunGame(game); err != nil {

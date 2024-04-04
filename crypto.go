@@ -18,8 +18,9 @@ const FIAT_SYMBOL = "USDT"
 
 var pricesText string
 
-type Currency struct {
-	name    string
+type CurrencyPair struct {
+	symbol1 string
+	symbol2 string
 	price   float64
 	history []binance.WsKlineEvent
 }
@@ -28,57 +29,47 @@ type CryptoUi struct {
 	screen *ebiten.Image
 }
 
-var currencies = map[string]*Currency{
-	"BTC": {"Bitcoin", 0, make([]binance.WsKlineEvent, 0)},
-	"ETH": {"Ethereum", 0, make([]binance.WsKlineEvent, 0)},
-	"SOL": {"Solana", 0, make([]binance.WsKlineEvent, 0)},
-	//"XMR":  {"Monero", 0, make([]binance.WsKlineEvent, 0)},
-	"XRP":   {"Ripple", 0, make([]binance.WsKlineEvent, 0)},
-	"APE":   {"Ape Coin", 0, make([]binance.WsKlineEvent, 0)},
-	"RNDR":  {"Render", 0, make([]binance.WsKlineEvent, 0)},
-	"RAY":   {"Raydium", 0, make([]binance.WsKlineEvent, 0)},
-	"IOTA":  {"Miota", 0, make([]binance.WsKlineEvent, 0)},
-	"PEPE":  {"Pepe", 0, make([]binance.WsKlineEvent, 0)},
-	"SHIB":  {"Shiba Inu", 0, make([]binance.WsKlineEvent, 0)},
-	"DOGE":  {"Doge", 0, make([]binance.WsKlineEvent, 0)},
-	"APT":   {"Aptos", 0, make([]binance.WsKlineEvent, 0)},
-	"ADA":   {"Cardano", 0, make([]binance.WsKlineEvent, 0)},
-	"MATIC": {"Polygon", 0, make([]binance.WsKlineEvent, 0)},
-	"BNB":   {"BNB", 0, make([]binance.WsKlineEvent, 0)},
-	"Link":  {"ChainLink", 0, make([]binance.WsKlineEvent, 0)},
-	"EUR":   {"Euro", 0, make([]binance.WsKlineEvent, 0)},
-	// TODO Toincoin, Bitgert
-}
+var pairs []*CurrencyPair
+var symbols = []string{"BTC", "ETH", "SOL", "XRP", "APE", "RNDR", "RAY", "IOTA", "PEPE", "SHIB", "DOGE", "APT", "ADA", "MATIC", "BNB", "Link", "EUR"}
 
 func pollBinance() {
-	for symbol := range currencies {
-		go watchCurrency(symbol)
+	// default usdt pairs
+
+	for _, symbol := range symbols {
+		pair := &CurrencyPair{
+			symbol1: symbol,
+			symbol2: "USDT",
+			price:   0,
+			history: make([]binance.WsKlineEvent, 0),
+		}
+		pairs = append(pairs, pair)
+
+		go watchCurrency(pair)
 	}
 }
 
-func sortedPrices() []*Currency {
+func sortedCurrencyPairs() []*CurrencyPair {
 	// Sort cyrrencies by price
-	var sortedCurrencies []*Currency
-	for _, currency := range currencies {
-		sortedCurrencies = append(sortedCurrencies, currency)
+	var sortedPairs []*CurrencyPair
+	for _, pair := range pairs {
+		sortedPairs = append(sortedPairs, pair)
 	}
-	for i := 0; i < len(sortedCurrencies); i++ {
-		for j := i + 1; j < len(sortedCurrencies); j++ {
-			if sortedCurrencies[i].price < sortedCurrencies[j].price {
-				sortedCurrencies[i], sortedCurrencies[j] = sortedCurrencies[j], sortedCurrencies[i]
+	for i := 0; i < len(sortedPairs); i++ {
+		for j := i + 1; j < len(sortedPairs); j++ {
+			if sortedPairs[i].price < sortedPairs[j].price {
+				sortedPairs[i], sortedPairs[j] = sortedPairs[j], sortedPairs[i]
 			}
 		}
 	}
 
-	return sortedCurrencies
+	return sortedPairs
 }
 
-func watchCurrency(symbol string) {
+func watchCurrency(pair *CurrencyPair) {
 	wsKlineHandler := func(event *binance.WsKlineEvent) {
 		var err error
-		currency := currencies[strings.Replace(symbol, FIAT_SYMBOL, "", 1)]
-		currency.price, err = strconv.ParseFloat(event.Kline.Close, 64)
-		currency.history = append(currency.history, *event)
+		pair.price, err = strconv.ParseFloat(event.Kline.Close, 64)
+		pair.history = append(pair.history, *event)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -87,7 +78,7 @@ func watchCurrency(symbol string) {
 		fmt.Println(err)
 	}
 	doneC, _, err := binance.WsKlineServe(
-		fmt.Sprintf("%s%s", symbol, FIAT_SYMBOL),
+		fmt.Sprintf("%s%s", pair.symbol1, pair.symbol2),
 		"1m",
 		wsKlineHandler,
 		errHandler,
@@ -99,12 +90,12 @@ func watchCurrency(symbol string) {
 	<-doneC
 }
 
-func calcDelta(currency *Currency, span time.Duration) float64 {
-	if len(currency.history) == 0 {
+func calcDelta(pair *CurrencyPair, span time.Duration) float64 {
+	if len(pair.history) == 0 {
 		return 0
 	}
 
-	for _, event := range currency.history {
+	for _, event := range pair.history {
 		if time.Now().Sub(time.Unix(event.Kline.EndTime/1000, 0)) < span {
 			s := event.Kline.Close
 			f, err := strconv.ParseFloat(s, 64)
@@ -112,17 +103,17 @@ func calcDelta(currency *Currency, span time.Duration) float64 {
 				log.Fatal(err)
 			}
 
-			return currency.price - f
+			return pair.price - f
 		}
 	}
 
 	// If no event in the last hour, return the delta between the last event and the current price
-	last := currency.history[len(currency.history)-1].Kline.Close
+	last := pair.history[len(pair.history)-1].Kline.Close
 	f, err := strconv.ParseFloat(last, 64)
 	if err != nil {
 		log.Fatal(err)
 	}
-	return currency.price - f
+	return pair.price - f
 }
 
 func (ui *CryptoUi) Init() {
@@ -131,13 +122,13 @@ func (ui *CryptoUi) Init() {
 }
 
 func (ui *CryptoUi) Bounds() (width, height int) {
-	return WIDTH, (fontHeight+linePadding)*len(currencies) + 2
+	return WIDTH, (fontHeight+linePadding)*len(symbols) + 2
 }
 
 func (ui *CryptoUi) Draw() *ebiten.Image {
 	ui.screen.Fill(bgColor)
 
-	prices := sortedPrices()
+	prices := sortedCurrencyPairs()
 	for i, currency := range prices {
 		c := textColor
 		delta := calcDelta(currency, time.Hour*24)
@@ -155,7 +146,7 @@ func (ui *CryptoUi) Draw() *ebiten.Image {
 			value = fmt.Sprintf("%.2e", currency.price)
 		}
 
-		line := fmt.Sprintf("%-9s %-8s %.1f%%", currency.name, value, math.Abs(delta/currency.price*100))
+		line := fmt.Sprintf("%-5s %-8s %.1f%%", strings.ToLower(currency.symbol1), value, math.Abs(delta/currency.price*100))
 		text.Draw(ui.screen, line, defaultFont, 0, (fontHeight+linePadding)*(i+1), c)
 	}
 

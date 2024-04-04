@@ -4,7 +4,7 @@ go 1.21.7
 
 require (
 	github.com/adshao/go-binance/v2 v2.4.5
-	github.com/hajimehoshi/ebiten v1.12.12
+	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/hajimehoshi/ebiten/v2 v2.6.6
 	github.com/u2takey/ffmpeg-go v0.5.0
 	golang.org/x/image v0.12.0
@@ -14,7 +14,6 @@ require (
 	github.com/aws/aws-sdk-go v1.38.20 // indirect
 	github.com/bitly/go-simplejson v0.5.0 // indirect
 	github.com/ebitengine/purego v0.6.0 // indirect
-	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20200707082815-5321531c36a2 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/jezek/xgb v1.1.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
