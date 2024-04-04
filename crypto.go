@@ -122,7 +122,7 @@ func (ui *CryptoUi) Init() {
 }
 
 func (ui *CryptoUi) Bounds() (width, height int) {
-	return WIDTH, (fontHeight+linePadding)*len(symbols) + linePadding*2
+	return WIDTH, (fontHeight+linePadding)*len(symbols) + linePadding*10
 }
 
 func (ui *CryptoUi) Draw() *ebiten.Image {

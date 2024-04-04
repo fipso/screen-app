@@ -64,7 +64,7 @@ func (l *SwitchLayout) Draw() *ebiten.Image {
 			GeoM: pos,
 		})
 
-		l.transitionFrame+=8
+		l.transitionFrame+=12
 
 		if l.transitionFrame == WIDTH {
 			l.currentIndex = (l.currentIndex + 1) % len(l.children)

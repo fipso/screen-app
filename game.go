@@ -25,11 +25,14 @@ type UiElement interface {
 const WIDTH = 1080
 const HEIGHT = 1920
 
-var textColor = color.RGBA{255, 255, 255, 255}
-var bgColor = color.RGBA{0, 0, 0, 255}
-var defaultFont font.Face = basicfont.Face7x13
 var fontHeight = 72
 var fontWidth = 60
+var defaultFont font.Face = basicfont.Face7x13
+var weatherFont font.Face = basicfont.Face7x13
+
+var textColor = color.RGBA{255, 255, 255, 255}
+var bgColor = color.RGBA{0, 0, 0, 255}
+
 var linePadding = 5
 
 type Game struct {
@@ -83,7 +86,7 @@ func runGameUI() {
 		},
 	}
 	game.stackLayout = append(game.stackLayout, switchLayout)
-	game.stackLayout = append(game.stackLayout, &PollenUi{})
+	// game.stackLayout = append(game.stackLayout, &PollenUi{})
 
 	for _, ui := range game.stackLayout {
 		ui.Init()
@@ -106,7 +109,19 @@ func runGameUI() {
 	}()
 
 	//Load font
-	fontData, err := os.ReadFile("assets/fonts/MajorMonoDisplay-Regular.ttf")
+	defaultFont = loadFont("assets/fonts/MajorMonoDisplay-Regular.ttf", 72)
+	weatherFont = loadFont("assets/fonts/weathericons-regular-webfont.ttf", 320)
+
+	ebiten.SetWindowSize(1080, 1920)
+	ebiten.SetWindowTitle("Screep App Game UI")
+	ebiten.SetFullscreen(true)
+	if err := ebiten.RunGame(game); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func loadFont(path string, size float64) font.Face {
+	fontData, err := os.ReadFile(path)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -116,18 +131,13 @@ func runGameUI() {
 		log.Fatal(err)
 	}
 
-	defaultFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
-		Size: 72,
+	f, err := opentype.NewFace(tt, &opentype.FaceOptions{
+		Size: size,
 		DPI:  72,
 	})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	ebiten.SetWindowSize(1080, 1920)
-	ebiten.SetWindowTitle("Screep App Game UI")
-	ebiten.SetFullscreen(true)
-	if err := ebiten.RunGame(game); err != nil {
-		log.Fatal(err)
-	}
+	return f
 }
