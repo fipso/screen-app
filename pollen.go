@@ -121,9 +121,9 @@ func fetchPollen() error {
 		}
 	}
 
-	pollenStrength["G"] = entry.Pollen.Graeser.Today
-	pollenStrength["B"] = entry.Pollen.Birke.Today
-	pollenStrength["H"] = entry.Pollen.Hasel.Today
+	pollenStrength["g"] = entry.Pollen.Graeser.Today
+	pollenStrength["b"] = entry.Pollen.Birke.Today
+	pollenStrength["h"] = entry.Pollen.Hasel.Today
 
 	return nil
 }
@@ -140,8 +140,8 @@ func (ui *PollenUi) Bounds() (width, height int) {
 func (ui *PollenUi) Draw() *ebiten.Image {
 	ui.screen.Fill(bgColor)
 
-	pollenS := "Pollen: "
-	pollenKeys := []string{"G", "B", "H"}
+	pollenS := "pollen: "
+	pollenKeys := []string{"g", "b", "h"}
 	for _, key := range pollenKeys {
 		v := pollenStrength[key]
 		pollenS += fmt.Sprintf("%s%s ", key, v)

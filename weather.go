@@ -61,7 +61,7 @@ func (ui *WeatherUi) Bounds() (width, height int) {
 func (ui *WeatherUi) Draw() *ebiten.Image {
 	ui.screen.Fill(bgColor)
 
-	weatherS := "Weather: ???"
+	weatherS := "weather: ???"
 	text.Draw(ui.screen, weatherS, defaultFont, 0, fontHeight, textColor)
 
 	return ui.screen

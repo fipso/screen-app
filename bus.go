@@ -301,8 +301,8 @@ func pollBusTimes() {
 	}
 
 	for {
-		busTimes["W. Tal"] = GetBusTime("de%3A05158%3A19001", "de%3A05158%3A13980")
-		busTimes["D. Dorf"] = GetBusTime("de%3A05158%3A19001", "de%3A05158%3A18969")
+		busTimes["w. tal"] = GetBusTime("de%3A05158%3A19001", "de%3A05158%3A13980")
+		busTimes["d. dorf"] = GetBusTime("de%3A05158%3A19001", "de%3A05158%3A18969")
 		time.Sleep(time.Second * 30)
 	}
 
@@ -358,15 +358,15 @@ func (ui *BusUi) Init() {
 }
 
 func (ui *BusUi) Bounds() (width, height int) {
-	return WIDTH, (fontHeight + linePadding) * 7
+	return WIDTH, (fontHeight + linePadding) * 5
 }
 
 func (ui *BusUi) Draw() *ebiten.Image {
 	ui.screen.Fill(bgColor)
 
-	busKeys := []string{"W. Tal", "D. Dorf"}
+	busKeys := []string{"w. tal", "d. dorf"}
 	for i, key := range busKeys {
-		text.Draw(ui.screen, key, defaultFont, 64*i, fontHeight, textColor)
+		text.Draw(ui.screen, key, defaultFont, fontWidth*6*i, fontHeight, textColor)
 		times := busTimes[key]
 		for j, entry := range times {
 			c := textColor
@@ -374,7 +374,7 @@ func (ui *BusUi) Draw() *ebiten.Image {
 				c = color.RGBA{255, 0, 0, 255}
 			}
 
-			text.Draw(ui.screen, entry.time.Format("15:04"), defaultFont, 64*i, (fontHeight+linePadding)*(j+2), c)
+			text.Draw(ui.screen, entry.time.Format("15:04"), defaultFont, fontWidth*6*i, (fontHeight+linePadding)*(j+2), c)
 		}
 	}
 

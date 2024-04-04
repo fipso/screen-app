@@ -29,6 +29,7 @@ var textColor = color.RGBA{255, 255, 255, 255}
 var bgColor = color.RGBA{0, 0, 0, 255}
 var defaultFont font.Face = basicfont.Face7x13
 var fontHeight = 72
+var fontWidth = 60
 var linePadding = 5
 
 type Game struct {

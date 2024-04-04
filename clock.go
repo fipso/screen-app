@@ -24,15 +24,15 @@ func (ui *ClockUi) Init() {
 }
 
 func (ui *ClockUi) Bounds() (width, height int) {
-	return WIDTH, fontHeight
+	return WIDTH, fontHeight+linePadding
 }
 
 func (ui *ClockUi) Draw() *ebiten.Image {
 	ui.screen.Fill(bgColor)
 
-	text.Draw(ui.screen, time.Now().Format("15:04"), defaultFont, 0, fontHeight, textColor)
-	text.Draw(ui.screen, time.Now().In(ui.moscowLoc).Format("15:04"), defaultFont, 50, fontHeight, textColor)
-	text.Draw(ui.screen, time.Now().In(ui.washingtonLoc).Format("15:04"), defaultFont, 100, fontHeight, textColor)
+	text.Draw(ui.screen, time.Now().Format("15:04"), defaultFont, fontWidth, fontHeight, textColor)
+	text.Draw(ui.screen, time.Now().In(ui.moscowLoc).Format("15:04"), defaultFont, fontWidth*6, fontHeight, textColor)
+	text.Draw(ui.screen, time.Now().In(ui.washingtonLoc).Format("15:04"), defaultFont, fontWidth*11, fontHeight, textColor)
 
 	return ui.screen
 }
