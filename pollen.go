@@ -2,18 +2,10 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"time"
-
-	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/text"
 )
-
-type PollenUi struct {
-	screen *ebiten.Image
-}
 
 type PollenData struct {
 	Name       string `json:"name"`
@@ -128,25 +120,25 @@ func fetchPollen() error {
 	return nil
 }
 
-func (ui *PollenUi) Init() {
-	width, height := ui.Bounds()
-	ui.screen = ebiten.NewImage(width, height)
-}
+// func (ui *PollenUi) Init() {
+// 	width, height := ui.Bounds()
+// 	ui.screen = ebiten.NewImage(width, height)
+// }
 
-func (ui *PollenUi) Bounds() (width, height int) {
-	return WIDTH, fontHeight + linePadding
-}
+// func (ui *PollenUi) Bounds() (width, height int) {
+// 	return WIDTH, fontHeight + linePadding
+// }
 
-func (ui *PollenUi) Draw() *ebiten.Image {
-	ui.screen.Fill(bgColor)
+// func (ui *PollenUi) Draw() *ebiten.Image {
+// 	ui.screen.Fill(bgColor)
 
-	pollenS := "pollen: "
-	pollenKeys := []string{"g", "b", "h"}
-	for _, key := range pollenKeys {
-		v := pollenStrength[key]
-		pollenS += fmt.Sprintf("%s%s ", key, v)
-	}
-	text.Draw(ui.screen, pollenS, defaultFont, 0, fontHeight, textColor)
+// 	pollenS := "pollen: "
+// 	pollenKeys := []string{"g", "b", "h"}
+// 	for _, key := range pollenKeys {
+// 		v := pollenStrength[key]
+// 		pollenS += fmt.Sprintf("%s%s ", key, v)
+// 	}
+// 	text.Draw(ui.screen, pollenS, defaultFont, 0, fontHeight, textColor)
 
-	return ui.screen
-}
+// 	return ui.screen
+// }
