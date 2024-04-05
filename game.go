@@ -27,14 +27,17 @@ const HEIGHT = 1920
 
 var fontHeight = 72
 var fontWidth = 60
+
 var defaultFont font.Face = basicfont.Face7x13
 var weatherFont font.Face = basicfont.Face7x13
+var clockFont font.Face = basicfont.Face7x13
+var tinyFont font.Face = basicfont.Face7x13
 
 var textColor = color.RGBA{255, 255, 255, 255}
 var bgColor = color.RGBA{0, 0, 0, 255}
 
 var linePadding = 5
-var paddingX = fontWidth / 2
+var paddingX = 40
 
 type Game struct {
 	stackLayout []UiElement
@@ -111,6 +114,8 @@ func runGameUI() {
 	//Load font
 	defaultFont = loadFont("assets/fonts/MajorMonoDisplay-Regular.ttf", 72)
 	weatherFont = loadFont("assets/fonts/weathericons-regular-webfont.ttf", 320)
+	clockFont = loadFont("assets/fonts/technology.bold.ttf", 100)
+	tinyFont = loadFont("assets/fonts/OpenSans-Regular.ttf", 32)
 
 	ebiten.SetWindowSize(1080, 1920)
 	ebiten.SetWindowTitle("Screep App Game UI")
