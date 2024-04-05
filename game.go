@@ -34,6 +34,7 @@ var textColor = color.RGBA{255, 255, 255, 255}
 var bgColor = color.RGBA{0, 0, 0, 255}
 
 var linePadding = 5
+var paddingX = fontWidth / 2
 
 type Game struct {
 	stackLayout []UiElement
@@ -48,7 +49,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	// Draw UI elements
 	pos := ebiten.GeoM{}
-	pos.Translate(10, 0)
+	pos.Translate(float64(paddingX), 0)
 	for _, ui := range g.stackLayout {
 		img := ui.Draw()
 		screen.DrawImage(img, &ebiten.DrawImageOptions{
@@ -91,7 +92,6 @@ func runGameUI() {
 	for _, ui := range game.stackLayout {
 		ui.Init()
 	}
-	switchLayout.Init()
 
 	// Dark/Light mode
 	go func() {

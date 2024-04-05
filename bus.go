@@ -366,7 +366,7 @@ func (ui *BusUi) Draw() *ebiten.Image {
 
 	busKeys := []string{"w. tal", "d. dorf"}
 	for i, key := range busKeys {
-		text.Draw(ui.screen, key, defaultFont, fontWidth*2+fontWidth*6*i, fontHeight, textColor)
+		text.Draw(ui.screen, key, defaultFont, fontWidth*2+fontWidth*7*i, fontHeight, textColor)
 		times := busTimes[key]
 		for j, entry := range times {
 			c := textColor
@@ -374,7 +374,7 @@ func (ui *BusUi) Draw() *ebiten.Image {
 				c = color.RGBA{255, 0, 0, 255}
 			}
 
-			text.Draw(ui.screen, entry.time.Format("15:04"), defaultFont, fontWidth*2+fontWidth*6*i, (fontHeight+linePadding)*(j+2), c)
+			text.Draw(ui.screen, entry.time.Format("15:04"), defaultFont, fontWidth*2+fontWidth*7*i, (fontHeight+linePadding)*(j+2), c)
 		}
 	}
 

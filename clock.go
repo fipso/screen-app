@@ -24,7 +24,7 @@ func (ui *ClockUi) Init() {
 }
 
 func (ui *ClockUi) Bounds() (width, height int) {
-	return WIDTH, fontHeight+linePadding
+	return WIDTH, fontHeight+linePadding*4
 }
 
 func (ui *ClockUi) Draw() *ebiten.Image {

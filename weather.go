@@ -98,7 +98,7 @@ func (ui *WeatherUi) Init() {
 }
 
 func (ui *WeatherUi) Bounds() (width, height int) {
-	return WIDTH, fontHeight * 4
+	return WIDTH, fontHeight * 6
 }
 
 func (ui *WeatherUi) Draw() *ebiten.Image {
@@ -119,10 +119,21 @@ func (ui *WeatherUi) Draw() *ebiten.Image {
 
 	// Draw weather text
 	weatherS := fmt.Sprintf("%.1f °c\n%s", currentWeather.Temperature, currentWeather.Condition)
-	text.Draw(ui.screen, weatherS, defaultFont, fontWidth*3, fontHeight, textColor)
-
+	text.Draw(ui.screen, weatherS, defaultFont, fontWidth*2, fontHeight, textColor)
 	// Draw weather icon
-	text.Draw(ui.screen, icon2Char(currentWeather.Icon), weatherFont, fontWidth*7, fontHeight*4, textColor)
+	text.Draw(ui.screen, icon2Char(currentWeather.Icon), weatherFont, fontWidth*6, fontHeight*4, textColor)
+
+	// Draw pollen
+	pollenS := ""
+	pollenKeys := []string{"g", "b", "h"}
+	for _, key := range pollenKeys {
+		v := pollenStrength[key]
+		if v == "0" {
+			continue
+		}
+		pollenS += fmt.Sprintf("%s%s\n", key, v)
+	}
+	text.Draw(ui.screen, pollenS, defaultFont, fontWidth*12, fontHeight*4, textColor)
 
 	return ui.screen
 }
