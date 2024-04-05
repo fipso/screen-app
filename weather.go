@@ -73,7 +73,7 @@ func pollWeather() {
 }
 
 func fetchWeather() error {
-	req, err := http.Get("https://api.brightsky.dev/weather?lat=51.1857454&lon=6.90171&date=2024-04-04")
+	req, err := http.Get(fmt.Sprintf("https://api.brightsky.dev/weather?lat=51.1857454&lon=6.90171&date=%s", time.Now().Format("2006-01-02")))
 	if err != nil {
 		return err
 	}
@@ -139,11 +139,13 @@ func (ui *WeatherUi) Draw() *ebiten.Image {
 }
 
 func icon2Char(icon string) string {
+        fmt.Println("Weather Icon", icon)
+      
 	switch icon {
 	case "cloudy":
 		return ""
+	default:
+		fmt.Println("Unknown icon", icon)
+		return ""
 	}
-
-	fmt.Println("Unknown icon", icon)
-	return ""
 }
