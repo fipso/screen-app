@@ -118,7 +118,7 @@ func (ui *WeatherUi) Draw() *ebiten.Image {
 	}
 
 	// Draw weather text
-	weatherS := fmt.Sprintf("%.1f °c\n%s", currentWeather.Temperature, currentWeather.Condition)
+	weatherS := fmt.Sprintf("%.1f°c\n%s", currentWeather.Temperature, currentWeather.Condition)
 	text.Draw(ui.screen, weatherS, defaultFont, fontWidth*2, fontHeight, textColor)
 	// Draw weather icon
 	text.Draw(ui.screen, icon2Char(currentWeather.Icon), weatherFont, fontWidth*6, fontHeight*4, textColor)
@@ -139,11 +139,27 @@ func (ui *WeatherUi) Draw() *ebiten.Image {
 }
 
 func icon2Char(icon string) string {
-        fmt.Println("Weather Icon", icon)
-      
 	switch icon {
+
 	case "cloudy":
 		return ""
+	case "partly-cloudy-day":
+		return ""
+	case "partly-cloudy-night":
+		return ""
+	case "clear-day":
+		return ""
+	case "clear-night":
+		return ""
+	case "rain":
+		return ""
+	case "snow":
+		return ""
+	case "sleet":
+		return ""
+	case "wind":
+		return ""
+
 	default:
 		fmt.Println("Unknown icon", icon)
 		return ""

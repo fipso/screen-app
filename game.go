@@ -113,7 +113,7 @@ func runGameUI() {
 
 	//Load font
 	defaultFont = loadFont("assets/fonts/MajorMonoDisplay-Regular.ttf", 72)
-	weatherFont = loadFont("assets/fonts/weathericons-regular-webfont.ttf", 320)
+	weatherFont = loadFont("assets/fonts/weathericons-regular-webfont.ttf", 260)
 	clockFont = loadFont("assets/fonts/technology.bold.ttf", 100)
 	tinyFont = loadFont("assets/fonts/OpenSans-Regular.ttf", 32)
 
