@@ -13,7 +13,7 @@ import (
 	"github.com/pion/rtp"
 )
 
-type RtmpUi struct {
+type RtspUi struct {
 	screen *ebiten.Image
 
 	currentImage *ebiten.Image
@@ -22,7 +22,7 @@ type RtmpUi struct {
 	streamHeight int
 }
 
-func (ui *RtmpUi) Init() {
+func (ui *RtspUi) Init() {
 	ui.scale = 0.8
 	ui.streamWidth = 1920
 	ui.streamHeight = 1080
@@ -104,11 +104,11 @@ func (ui *RtmpUi) Init() {
 	}
 }
 
-func (ui *RtmpUi) Bounds() (width, height int) {
+func (ui *RtspUi) Bounds() (width, height int) {
 	return int(float64(ui.streamWidth) * ui.scale), int(float64(ui.streamHeight) * ui.scale)
 }
 
-func (ui *RtmpUi) Draw() *ebiten.Image {
+func (ui *RtspUi) Draw() *ebiten.Image {
 	if ui.currentImage == nil {
 		return ui.screen
 	}

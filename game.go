@@ -83,7 +83,7 @@ func runGameUI() {
 		interval: 60 * 10,
 		children: []UiElement{
 			&CryptoUi{},
-			&RtmpUi{},
+			&RtspUi{},
 		},
 	}
 	game.stackLayout = append(game.stackLayout, switchLayout)
