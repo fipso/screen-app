@@ -77,19 +77,27 @@ func runGameUI() {
 
 	// Load UI elements
 	game.stackLayout = append(game.stackLayout, &ClockUi{})
-	game.stackLayout = append(game.stackLayout, &CryptoUi{})
 
-	// SwitchLayout
+	// SwitchLayouts
+	switchLayout := &SwitchLayout{
+		interval: 60 * 10,
+		children: []UiElement{
+			&CryptoUi{},
+			&RtmpUi{},
+		},
+	}
+	game.stackLayout = append(game.stackLayout, switchLayout)
+
 	// game.stackLayout = append(game.stackLayout, &BusUi{})
 	// game.stackLayout = append(game.stackLayout, &PollenUi{})
-	switchLayout := &SwitchLayout{
+	switchLayout2 := &SwitchLayout{
 		interval: 60 * 10,
 		children: []UiElement{
 			&BusUi{},
 			&WeatherUi{},
 		},
 	}
-	game.stackLayout = append(game.stackLayout, switchLayout)
+	game.stackLayout = append(game.stackLayout, switchLayout2)
 	// game.stackLayout = append(game.stackLayout, &PollenUi{})
 
 	for _, ui := range game.stackLayout {
