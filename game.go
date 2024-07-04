@@ -87,6 +87,7 @@ func runGameUI() {
 		children: []UiElement{
 			&BusUi{},
 			&WeatherUi{},
+                        &GrowUi{},
 		},
 	}
 	game.stackLayout = append(game.stackLayout, switchLayout)
