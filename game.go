@@ -85,8 +85,8 @@ func runGameUI() {
 	switchLayout := &SwitchLayout{
 		interval: 60 * 10,
 		children: []UiElement{
-			&BusUi{},
-			&WeatherUi{},
+			// &BusUi{},
+			// &WeatherUi{},
                         &GrowUi{},
 		},
 	}
