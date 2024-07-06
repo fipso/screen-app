@@ -79,14 +79,14 @@ func runGameUI() {
 	game.stackLayout = append(game.stackLayout, &ClockUi{})
 
 	// SwitchLayouts
-	switchLayout := &SwitchLayout{
-		interval: 60 * 10,
-		children: []UiElement{
-			&CryptoUi{},
-			&RtspUi{},
-		},
-	}
-	game.stackLayout = append(game.stackLayout, switchLayout)
+	// switchLayout := &SwitchLayout{
+	// 	interval: 60 * 10,
+	// 	children: []UiElement{
+	// 		&CryptoUi{},
+	// 		&GrowUi{},
+	// 	},
+	// }
+	game.stackLayout = append(game.stackLayout, &GrowUi{})
 
 	// game.stackLayout = append(game.stackLayout, &BusUi{})
 	// game.stackLayout = append(game.stackLayout, &PollenUi{})

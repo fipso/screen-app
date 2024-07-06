@@ -5,14 +5,16 @@ import (
 	"fmt"
 	"image/png"
 	"log"
+	"math"
 	"sort"
 	"strconv"
 	"time"
 
-	"github.com/eclipse/paho.mqtt.golang"
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
 	"github.com/wcharczuk/go-chart/v2"
+	"github.com/wcharczuk/go-chart/v2/drawing"
 )
 
 type GrowUi struct {
@@ -78,16 +80,44 @@ func (ui *GrowUi) renderGraph() {
 	humidHistoryTimes, humidHistoryValues := mapToGraphSlice(growHumidHistory)
 
 	graph := chart.Chart{
-		Series: []chart.Series{
-			chart.TimeSeries{
-				XValues: tempHistoryTimes,
-				YValues: tempHistoryValues,
-			},
-			chart.TimeSeries{
-				XValues: humidHistoryTimes,
-				YValues: humidHistoryValues,
+		Background: chart.Style{FillColor: chart.ColorTransparent},
+		DPI:        200,
+		XAxis: chart.XAxis{
+			ValueFormatter: chart.TimeMinuteValueFormatter,
+		},
+		YAxis: chart.YAxis{
+			Range: &chart.ContinuousRange{
+				Min: 10.0,
+				Max: 80.0,
 			},
 		},
+		Canvas: chart.Style{
+			FillColor: drawing.ColorTransparent,
+		},
+		Series: []chart.Series{
+			chart.TimeSeries{
+				Name:    "Temperature",
+				XValues: tempHistoryTimes,
+				YValues: tempHistoryValues,
+				Style: chart.Style{
+					StrokeColor: chart.ColorRed,
+					StrokeWidth: 8,
+				},
+			},
+			chart.TimeSeries{
+				Name:    "Relative Humidity",
+				XValues: humidHistoryTimes,
+				YValues: humidHistoryValues,
+				Style: chart.Style{
+					StrokeColor: chart.ColorBlue,
+					StrokeWidth: 8,
+				},
+			},
+		},
+	}
+
+	graph.Elements = []chart.Renderable{
+		chart.Legend(&graph),
 	}
 
 	buffer := bytes.NewBuffer([]byte{})
@@ -103,6 +133,19 @@ func (ui *GrowUi) renderGraph() {
 	}
 
 	ui.currentGraphImage = ebiten.NewImageFromImage(img)
+}
+
+func calculateVPD(T, RH float64) float64 {
+	// Calculate the saturated vapor pressure (es) in kPa
+	es := (610.7 * math.Pow(10, (7.5*T)/(237.3+T))) / 1000
+
+	// Calculate the actual vapor pressure (ea) in kPa
+	ea := es * (RH / 100)
+
+	// Calculate VPD in kPa
+	vpd := es - ea
+
+	return vpd
 }
 
 func (ui *GrowUi) Init() {
@@ -137,24 +180,34 @@ func (ui *GrowUi) Bounds() (width, height int) {
 
 func (ui *GrowUi) Draw() *ebiten.Image {
 	ui.screen.Fill(bgColor)
-	text.Draw(
-		ui.screen,
-		fmt.Sprintf("%.2f temp %.2f rh", growTempLast, growHumidLast),
-		defaultFont,
-		0,
-		fontHeight,
-		textColor,
-	)
 
 	// Plot the temperature and humidity history
 	if ui.currentGraphImage != nil {
 		pos := ebiten.GeoM{}
-		pos.Translate(0, float64(fontHeight+linePadding))
+		pos.Translate(0, float64(linePadding*2))
 		opts := &ebiten.DrawImageOptions{
 			GeoM: pos,
 		}
 		ui.screen.DrawImage(ui.currentGraphImage, opts)
 	}
+
+	text.Draw(
+		ui.screen,
+		fmt.Sprintf("%.2f temp %.2f rh", growTempLast, growHumidLast),
+		defaultFont,
+		0,
+		475,
+		textColor,
+	)
+
+	text.Draw(
+		ui.screen,
+		fmt.Sprintf("%.2f vpd", calculateVPD(growTempLast, growHumidLast)),
+		defaultFont,
+		0,
+		475+fontHeight+linePadding,
+		textColor,
+	)
 
 	return ui.screen
 }
