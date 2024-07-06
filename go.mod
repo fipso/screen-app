@@ -5,15 +5,19 @@ go 1.21.7
 require (
 	github.com/adshao/go-binance/v2 v2.4.5
 	github.com/bluenviron/gortsplib/v4 v4.8.2
+	github.com/eclipse/paho.mqtt.golang v1.4.3
 	github.com/hajimehoshi/ebiten/v2 v2.6.6
 	github.com/pion/rtp v1.8.6
+	github.com/wcharczuk/go-chart/v2 v2.1.1
 	golang.org/x/image v0.12.0
 )
 
 require (
 	github.com/bitly/go-simplejson v0.5.0 // indirect
+	github.com/blend/go-sdk v1.20220411.3 // indirect
 	github.com/bluenviron/mediacommon v1.9.3 // indirect
 	github.com/ebitengine/purego v0.6.0 // indirect
+	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/jezek/xgb v1.1.0 // indirect
