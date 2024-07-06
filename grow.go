@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"image/png"
 	"log"
+	"sort"
 	"strconv"
+	"time"
 
 	"github.com/eclipse/paho.mqtt.golang"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -19,29 +21,29 @@ type GrowUi struct {
 	currentGraphImage *ebiten.Image
 }
 
-var growTemp float64
-var growTempHistory []float64
-
-var growHumid float64
-var growHumidHistory []float64
+var growTempLast float64
+var growHumidLast float64
+var growTempHistory map[time.Time]float64
+var growHumidHistory map[time.Time]float64
 
 func (ui *GrowUi) messagePubHandler(client mqtt.Client, msg mqtt.Message) {
-	var err error
 	switch msg.Topic() {
 	case "growroom/room/temp":
-		growTemp, err = parseValue(msg)
+		growTemp, err := parseValue(msg)
 		if err != nil {
 			log.Println("Could not parse MQTT message")
 			return
 		}
-		growTempHistory = append(growTempHistory, growTemp)
+		growTempLast = growTemp
+		growTempHistory[time.Now()] = growTemp
 	case "growroom/room/humid":
-		growHumid, err = parseValue(msg)
+		growHumid, err := parseValue(msg)
 		if err != nil {
 			log.Println("Could not parse MQTT message")
 			return
 		}
-		growHumidHistory = append(growHumidHistory, growHumid)
+		growHumidLast = growHumid
+		growHumidHistory[time.Now()] = growHumid
 	}
 
 	if len(growTempHistory) > 1 && len(growHumidHistory) > 1 {
@@ -54,21 +56,36 @@ func parseValue(msg mqtt.Message) (float64, error) {
 	return strconv.ParseFloat(s, 64)
 }
 
-func (ui *GrowUi) renderGraph() {
-	var n []float64
-	for i := 0; i < len(growTempHistory); i++ {
-		n = append(n, float64(i))
+func mapToGraphSlice(inputMap map[time.Time]float64) ([]time.Time, []float64) {
+	var times []time.Time
+	var values []float64
+
+	for k, _ := range inputMap {
+		times = append(times, k)
 	}
+	sort.Slice(times, func(i, j int) bool {
+		return times[i].Before(times[j])
+	})
+	for _, t := range times {
+		values = append(values, inputMap[t])
+	}
+
+	return times, values
+}
+
+func (ui *GrowUi) renderGraph() {
+	tempHistoryTimes, tempHistoryValues := mapToGraphSlice(growTempHistory)
+	humidHistoryTimes, humidHistoryValues := mapToGraphSlice(growHumidHistory)
 
 	graph := chart.Chart{
 		Series: []chart.Series{
-			chart.ContinuousSeries{
-				XValues: n,
-				YValues: growTempHistory,
+			chart.TimeSeries{
+				XValues: tempHistoryTimes,
+				YValues: tempHistoryValues,
 			},
-			chart.ContinuousSeries{
-				XValues: n,
-				YValues: growHumidHistory,
+			chart.TimeSeries{
+				XValues: humidHistoryTimes,
+				YValues: humidHistoryValues,
 			},
 		},
 	}
@@ -91,6 +108,9 @@ func (ui *GrowUi) renderGraph() {
 func (ui *GrowUi) Init() {
 	width, height := ui.Bounds()
 	ui.screen = ebiten.NewImage(width, height)
+
+	growTempHistory = make(map[time.Time]float64)
+	growHumidHistory = make(map[time.Time]float64)
 
 	// Connect to mqtt
 	broker := "homeserver"
@@ -119,7 +139,7 @@ func (ui *GrowUi) Draw() *ebiten.Image {
 	ui.screen.Fill(bgColor)
 	text.Draw(
 		ui.screen,
-		fmt.Sprintf("%.2f temp %.2f rh", growTemp, growHumid),
+		fmt.Sprintf("%.2f temp %.2f rh", growTempLast, growHumidLast),
 		defaultFont,
 		0,
 		fontHeight,

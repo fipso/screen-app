@@ -85,9 +85,8 @@ func runGameUI() {
 	switchLayout := &SwitchLayout{
 		interval: 60 * 10,
 		children: []UiElement{
-			// &BusUi{},
-			// &WeatherUi{},
-                        &GrowUi{},
+			&BusUi{},
+			&WeatherUi{},
 		},
 	}
 	game.stackLayout = append(game.stackLayout, switchLayout)
