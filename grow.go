@@ -48,9 +48,7 @@ func (ui *GrowUi) messagePubHandler(client mqtt.Client, msg mqtt.Message) {
 		growHumidHistory[time.Now()] = growHumid
 	}
 
-	if len(growTempHistory) > 1 && len(growHumidHistory) > 1 {
-		ui.renderGraph()
-	}
+	ui.renderGraph()
 }
 
 func parseValue(msg mqtt.Message) (float64, error) {
@@ -80,8 +78,9 @@ func (ui *GrowUi) renderGraph() {
 	humidHistoryTimes, humidHistoryValues := mapToGraphSlice(growHumidHistory)
 
 	graph := chart.Chart{
+                // change font color to white
+                DPI: 200,
 		Background: chart.Style{FillColor: chart.ColorTransparent},
-		DPI:        200,
 		XAxis: chart.XAxis{
 			ValueFormatter: chart.TimeMinuteValueFormatter,
 		},
@@ -92,7 +91,7 @@ func (ui *GrowUi) renderGraph() {
 			},
 		},
 		Canvas: chart.Style{
-			FillColor: drawing.ColorTransparent,
+			FillColor: drawing.Color{R: bgColor.R, G: bgColor.G, B: bgColor.B, A: bgColor.A},
 		},
 		Series: []chart.Series{
 			chart.TimeSeries{
@@ -117,7 +116,9 @@ func (ui *GrowUi) renderGraph() {
 	}
 
 	graph.Elements = []chart.Renderable{
-		chart.Legend(&graph),
+		chart.Legend(&graph, chart.Style{
+			FillColor: graph.Background.FillColor,
+		}),
 	}
 
 	buffer := bytes.NewBuffer([]byte{})
@@ -174,8 +175,7 @@ func (ui *GrowUi) Init() {
 }
 
 func (ui *GrowUi) Bounds() (width, height int) {
-	//return WIDTH, fontHeight + linePadding
-	return WIDTH, HEIGHT
+	return WIDTH, 800
 }
 
 func (ui *GrowUi) Draw() *ebiten.Image {

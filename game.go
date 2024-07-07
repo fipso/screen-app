@@ -80,7 +80,7 @@ func runGameUI() {
 
 	// SwitchLayouts
 	switchLayout := &SwitchLayout{
-		interval: 60 * 10,
+		interval: 100 * 10,
 		children: []UiElement{
 			&CryptoUi{},
 			&GrowUi{},
