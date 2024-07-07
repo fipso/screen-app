@@ -196,7 +196,7 @@ func (ui *GrowUi) Draw() *ebiten.Image {
 		fmt.Sprintf("%.2f temp %.2f rh", growTempLast, growHumidLast),
 		defaultFont,
 		0,
-		475,
+		500,
 		textColor,
 	)
 
@@ -205,7 +205,7 @@ func (ui *GrowUi) Draw() *ebiten.Image {
 		fmt.Sprintf("%.2f vpd", calculateVPD(growTempLast, growHumidLast)),
 		defaultFont,
 		0,
-		475+fontHeight+linePadding,
+		500+fontHeight+linePadding,
 		textColor,
 	)
 
