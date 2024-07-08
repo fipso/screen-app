@@ -23,10 +23,15 @@ type GrowUi struct {
 	currentGraphImage *ebiten.Image
 }
 
-var growTempLast float64
-var growHumidLast float64
-var growTempHistory map[time.Time]float64
-var growHumidHistory map[time.Time]float64
+var growRoomTempLast float64
+var growRoomHumidLast float64
+var growRoomTempHistory map[time.Time]float64
+var growRoomHumidHistory map[time.Time]float64
+
+var growBoxTempLast float64
+var growBoxHumidLast float64
+var growBoxTempHistory map[time.Time]float64
+var growBoxHumidHistory map[time.Time]float64
 
 func (ui *GrowUi) messagePubHandler(client mqtt.Client, msg mqtt.Message) {
 	switch msg.Topic() {
@@ -36,16 +41,32 @@ func (ui *GrowUi) messagePubHandler(client mqtt.Client, msg mqtt.Message) {
 			log.Println("Could not parse MQTT message")
 			return
 		}
-		growTempLast = growTemp
-		growTempHistory[time.Now()] = growTemp
+		growRoomTempLast = growTemp
+		growRoomTempHistory[time.Now()] = growTemp
 	case "growroom/room/humid":
 		growHumid, err := parseValue(msg)
 		if err != nil {
 			log.Println("Could not parse MQTT message")
 			return
 		}
-		growHumidLast = growHumid
-		growHumidHistory[time.Now()] = growHumid
+		growRoomHumidLast = growHumid
+		growRoomHumidHistory[time.Now()] = growHumid
+	case "growbox/sensor/box_temperature/state":
+		growTemp, err := parseValue(msg)
+		if err != nil {
+			log.Println("Could not parse MQTT message")
+			return
+		}
+		growBoxTempLast = growTemp
+		growBoxTempHistory[time.Now()] = growTemp
+	case "growbox/sensor/box_humidity/state":
+		growHumid, err := parseValue(msg)
+		if err != nil {
+			log.Println("Could not parse MQTT message")
+			return
+		}
+		growBoxHumidLast = growHumid
+		growBoxHumidHistory[time.Now()] = growHumid
 	}
 
 	ui.renderGraph()
@@ -74,12 +95,15 @@ func mapToGraphSlice(inputMap map[time.Time]float64) ([]time.Time, []float64) {
 }
 
 func (ui *GrowUi) renderGraph() {
-	tempHistoryTimes, tempHistoryValues := mapToGraphSlice(growTempHistory)
-	humidHistoryTimes, humidHistoryValues := mapToGraphSlice(growHumidHistory)
+	tempRoomHistoryTimes, tempRoomHistoryValues := mapToGraphSlice(growRoomTempHistory)
+	humidRoomHistoryTimes, humidRoomHistoryValues := mapToGraphSlice(growRoomHumidHistory)
+
+	tempBoxHistoryTimes, tempBoxHistoryValues := mapToGraphSlice(growBoxTempHistory)
+	humidBoxHistoryTimes, humidBoxHistoryValues := mapToGraphSlice(growBoxHumidHistory)
 
 	graph := chart.Chart{
-                // change font color to white
-                DPI: 200,
+		// change font color to white
+		DPI:        150,
 		Background: chart.Style{FillColor: chart.ColorTransparent},
 		XAxis: chart.XAxis{
 			ValueFormatter: chart.TimeMinuteValueFormatter,
@@ -95,21 +119,39 @@ func (ui *GrowUi) renderGraph() {
 		},
 		Series: []chart.Series{
 			chart.TimeSeries{
-				Name:    "Temperature",
-				XValues: tempHistoryTimes,
-				YValues: tempHistoryValues,
+				Name:    "Room Temp",
+				XValues: tempRoomHistoryTimes,
+				YValues: tempRoomHistoryValues,
 				Style: chart.Style{
 					StrokeColor: chart.ColorRed,
-					StrokeWidth: 8,
+					StrokeWidth: 6,
 				},
 			},
 			chart.TimeSeries{
-				Name:    "Relative Humidity",
-				XValues: humidHistoryTimes,
-				YValues: humidHistoryValues,
+				Name:    "Room RH",
+				XValues: humidRoomHistoryTimes,
+				YValues: humidRoomHistoryValues,
 				Style: chart.Style{
 					StrokeColor: chart.ColorBlue,
-					StrokeWidth: 8,
+					StrokeWidth: 6,
+				},
+			},
+			chart.TimeSeries{
+				Name:    "Box Temp",
+				XValues: tempBoxHistoryTimes,
+				YValues: tempBoxHistoryValues,
+				Style: chart.Style{
+					StrokeColor: chart.ColorOrange,
+					StrokeWidth: 6,
+				},
+			},
+			chart.TimeSeries{
+				Name:    "Box RH",
+				XValues: humidBoxHistoryTimes,
+				YValues: humidBoxHistoryValues,
+				Style: chart.Style{
+					StrokeColor: chart.ColorAlternateBlue,
+					StrokeWidth: 6,
 				},
 			},
 		},
@@ -153,15 +195,17 @@ func (ui *GrowUi) Init() {
 	width, height := ui.Bounds()
 	ui.screen = ebiten.NewImage(width, height)
 
-	growTempHistory = make(map[time.Time]float64)
-	growHumidHistory = make(map[time.Time]float64)
+	growRoomTempHistory = make(map[time.Time]float64)
+	growRoomHumidHistory = make(map[time.Time]float64)
+	growBoxTempHistory = make(map[time.Time]float64)
+	growBoxHumidHistory = make(map[time.Time]float64)
 
 	// Connect to mqtt
 	broker := "homeserver"
 	port := 1883
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker(fmt.Sprintf("tcp://%s:%d", broker, port))
-	opts.SetClientID("screen-app2")
+	opts.SetClientID(fmt.Sprintf("screen-app-%d", time.Now().Unix()))
 	opts.SetDefaultPublishHandler(ui.messagePubHandler)
 	client := mqtt.NewClient(opts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
@@ -169,13 +213,15 @@ func (ui *GrowUi) Init() {
 	}
 	log.Println("Connected to MQTT")
 
-	client.Subscribe("growroom/room/temp", 1, nil)
-	client.Subscribe("growroom/room/humid", 2, nil)
-	log.Printf("Subscribed to box temp/humid")
+	client.Subscribe("growroom/room/temp", 0, nil)
+	client.Subscribe("growroom/room/humid", 0, nil)
+	client.Subscribe("growbox/sensor/box_temperature/state", 0, nil)
+	client.Subscribe("growbox/sensor/box_humidity/state", 0, nil)
+	log.Printf("Subscribed to room and box temp/humid")
 }
 
 func (ui *GrowUi) Bounds() (width, height int) {
-	return WIDTH, 800
+	return WIDTH, 1000
 }
 
 func (ui *GrowUi) Draw() *ebiten.Image {
@@ -193,7 +239,12 @@ func (ui *GrowUi) Draw() *ebiten.Image {
 
 	text.Draw(
 		ui.screen,
-		fmt.Sprintf("%.2f temp %.2f rh", growTempLast, growHumidLast),
+		fmt.Sprintf(
+			"room\n%.2f temp %.2f rh\n%.2f vpd",
+			growRoomTempLast,
+			growRoomHumidLast,
+			calculateVPD(growRoomTempLast, growRoomHumidLast),
+		),
 		defaultFont,
 		0,
 		500,
@@ -202,10 +253,15 @@ func (ui *GrowUi) Draw() *ebiten.Image {
 
 	text.Draw(
 		ui.screen,
-		fmt.Sprintf("%.2f vpd", calculateVPD(growTempLast, growHumidLast)),
+		fmt.Sprintf(
+			"box\n%.2f temp %.2f rh\n%.2f vpd",
+			growBoxTempLast,
+			growBoxHumidLast,
+			calculateVPD(growBoxTempLast, growBoxHumidLast),
+		),
 		defaultFont,
 		0,
-		500+fontHeight+linePadding,
+		775,
 		textColor,
 	)
 
