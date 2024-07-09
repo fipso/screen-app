@@ -94,7 +94,7 @@ func mapToGraphSlice(inputMap map[time.Time]float64) ([]time.Time, []float64) {
 	return times, values
 }
 
-func (ui *GrowUi) renderGraph() {
+func (ui *GrowUi) buildTempGraph() *chart.Chart {
 	tempRoomHistoryTimes, tempRoomHistoryValues := mapToGraphSlice(growRoomTempHistory)
 	humidRoomHistoryTimes, humidRoomHistoryValues := mapToGraphSlice(growRoomHumidHistory)
 
@@ -102,21 +102,6 @@ func (ui *GrowUi) renderGraph() {
 	humidBoxHistoryTimes, humidBoxHistoryValues := mapToGraphSlice(growBoxHumidHistory)
 
 	graph := chart.Chart{
-		// change font color to white
-		DPI:        150,
-		Background: chart.Style{FillColor: chart.ColorTransparent},
-		XAxis: chart.XAxis{
-			ValueFormatter: chart.TimeMinuteValueFormatter,
-		},
-		YAxis: chart.YAxis{
-			Range: &chart.ContinuousRange{
-				Min: 10.0,
-				Max: 80.0,
-			},
-		},
-		Canvas: chart.Style{
-			FillColor: drawing.Color{R: bgColor.R, G: bgColor.G, B: bgColor.B, A: bgColor.A},
-		},
 		Series: []chart.Series{
 			chart.TimeSeries{
 				Name:    "Room Temp",
@@ -154,6 +139,60 @@ func (ui *GrowUi) renderGraph() {
 					StrokeWidth: 6,
 				},
 			},
+		},
+	}
+
+	return &graph
+}
+
+func (ui *GrowUi) buildVpdGraph() {
+	graph := chart.Chart{
+		Series: []chart.Series{
+			chart.TimeSeries{
+				Name:    "VPD Min",
+				XValues: vpdMinTimes,
+				YValues: vpdMinValues,
+				Style: chart.Style{
+					StrokeColor: chart.ColorYellow,
+					StrokeWidth: 6,
+				},
+			},
+			chart.TimeSeries{
+				Name:    "VPD Max",
+				XValues: vpdMaxTimes,
+				YValues: vpdMaxValues,
+				Style: chart.Style{
+					StrokeColor: chart.ColorAlternateBlue,
+					StrokeWidth: 6,
+				},
+			},
+		},
+	}
+}
+
+func (ui *GrowUi) renderGraph(graph *chart.Chart) {
+	// Apply defaults
+	graph.DPI = 200
+	graph.Background = chart.Style{FillColor: chart.ColorTransparent}
+	graph.Canvas = chart.Style{
+		FillColor: drawing.Color{R: bgColor.R, G: bgColor.G, B: bgColor.B, A: bgColor.A},
+	}
+
+	graph := chart.Chart{
+		// change font color to white
+		DPI:        200,
+		Background: chart.Style{FillColor: chart.ColorTransparent},
+		XAxis: chart.XAxis{
+			ValueFormatter: chart.TimeMinuteValueFormatter,
+		},
+		YAxis: chart.YAxis{
+			Range: &chart.ContinuousRange{
+				Min: 15.0,
+				Max: 75.0,
+			},
+		},
+		Canvas: chart.Style{
+			FillColor: drawing.Color{R: bgColor.R, G: bgColor.G, B: bgColor.B, A: bgColor.A},
 		},
 	}
 
