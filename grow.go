@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"image"
 	"image/png"
 	"log"
 	"math"
@@ -102,6 +103,15 @@ func (ui *GrowUi) buildTempGraph() *chart.Chart {
 	humidBoxHistoryTimes, humidBoxHistoryValues := mapToGraphSlice(growBoxHumidHistory)
 
 	graph := chart.Chart{
+		XAxis: chart.XAxis{
+			ValueFormatter: chart.TimeMinuteValueFormatter,
+		},
+		YAxis: chart.YAxis{
+			Range: &chart.ContinuousRange{
+				Min: 15.0,
+				Max: 75.0,
+			},
+		},
 		Series: []chart.Series{
 			chart.TimeSeries{
 				Name:    "Room Temp",
@@ -145,8 +155,19 @@ func (ui *GrowUi) buildTempGraph() *chart.Chart {
 	return &graph
 }
 
-func (ui *GrowUi) buildVpdGraph() {
+func (ui *GrowUi) buildVpdGraph() *chart.Chart {
+        
+
 	graph := chart.Chart{
+		XAxis: chart.XAxis{
+			ValueFormatter: chart.TimeMinuteValueFormatter,
+		},
+		YAxis: chart.YAxis{
+			Range: &chart.ContinuousRange{
+				Min: 0,
+				Max: 2,
+			},
+		},
 		Series: []chart.Series{
 			chart.TimeSeries{
 				Name:    "VPD Min",
@@ -168,9 +189,11 @@ func (ui *GrowUi) buildVpdGraph() {
 			},
 		},
 	}
+
+	return &graph
 }
 
-func (ui *GrowUi) renderGraph(graph *chart.Chart) {
+func (ui *GrowUi) renderGraph(graph *chart.Chart) *image.Image {
 	// Apply defaults
 	graph.DPI = 200
 	graph.Background = chart.Style{FillColor: chart.ColorTransparent}
@@ -178,26 +201,8 @@ func (ui *GrowUi) renderGraph(graph *chart.Chart) {
 		FillColor: drawing.Color{R: bgColor.R, G: bgColor.G, B: bgColor.B, A: bgColor.A},
 	}
 
-	graph := chart.Chart{
-		// change font color to white
-		DPI:        200,
-		Background: chart.Style{FillColor: chart.ColorTransparent},
-		XAxis: chart.XAxis{
-			ValueFormatter: chart.TimeMinuteValueFormatter,
-		},
-		YAxis: chart.YAxis{
-			Range: &chart.ContinuousRange{
-				Min: 15.0,
-				Max: 75.0,
-			},
-		},
-		Canvas: chart.Style{
-			FillColor: drawing.Color{R: bgColor.R, G: bgColor.G, B: bgColor.B, A: bgColor.A},
-		},
-	}
-
 	graph.Elements = []chart.Renderable{
-		chart.Legend(&graph, chart.Style{
+		chart.Legend(graph, chart.Style{
 			FillColor: graph.Background.FillColor,
 		}),
 	}
@@ -214,7 +219,7 @@ func (ui *GrowUi) renderGraph(graph *chart.Chart) {
 		log.Println("Could not decode graph png")
 	}
 
-	ui.currentGraphImage = ebiten.NewImageFromImage(img)
+	return &img
 }
 
 func calculateVPD(T, RH float64) float64 {
