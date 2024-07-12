@@ -109,15 +109,23 @@ func (ui *GrowUi) buildTempGraph() *chart.Chart {
 	tempBoxHistoryTimes, tempBoxHistoryValues := mapToGraphSlice(growBoxTempHistory)
 	humidBoxHistoryTimes, humidBoxHistoryValues := mapToGraphSlice(growBoxHumidHistory)
 
+	// Add outdoor RH for room times
 	outdoorHumidLine := map[time.Time]float64{}
 	if weatherCurrentData != nil && len(tempRoomHistoryTimes) > 0 {
 		rh := weatherCurrentData.Weather.RelativeHumidity
 		outdoorHumidLine[tempRoomHistoryTimes[0]] = rh
 		outdoorHumidLine[tempRoomHistoryTimes[len(tempRoomHistoryTimes)-1]] = rh
 	}
-
 	outdoorHumidTimes, outdoorHumidValues := mapToGraphSlice(outdoorHumidLine)
-	log.Println(outdoorHumidValues)
+
+	// Add outdoor Temp for room times
+	outdoorTempLine := map[time.Time]float64{}
+	if weatherCurrentData != nil && len(tempRoomHistoryTimes) > 0 {
+		temp := weatherCurrentData.Weather.Temperature
+		outdoorTempLine[tempRoomHistoryTimes[0]] = temp
+		outdoorTempLine[tempRoomHistoryTimes[len(tempRoomHistoryTimes)-1]] = temp
+	}
+	outdoorTempTimes, outdoorTempValues := mapToGraphSlice(outdoorTempLine)
 
 	graph := chart.Chart{
 		XAxis: chart.XAxis{
@@ -172,6 +180,15 @@ func (ui *GrowUi) buildTempGraph() *chart.Chart {
 				YValues: humidBoxHistoryValues,
 				Style: chart.Style{
 					StrokeColor: chart.ColorBlue,
+					StrokeWidth: 6,
+				},
+			},
+			chart.TimeSeries{
+				Name:    "Outdoor Temp",
+				XValues: outdoorTempTimes,
+				YValues: outdoorTempValues,
+				Style: chart.Style{
+					StrokeColor: chart.ColorGreen,
 					StrokeWidth: 6,
 				},
 			},
@@ -351,7 +368,7 @@ func (ui *GrowUi) Init() {
 }
 
 func (ui *GrowUi) Bounds() (width, height int) {
-	return WIDTH, 1400
+	return WIDTH, 1420
 }
 
 func (ui *GrowUi) Draw() *ebiten.Image {

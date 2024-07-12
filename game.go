@@ -80,7 +80,7 @@ func runGameUI() {
 
 	// SwitchLayouts
 	switchLayout := &SwitchLayout{
-		interval: 100 * 10,
+		interval: 2000, // 2k frames
 		children: []UiElement{
 			&CryptoUi{},
 			&GrowUi{},
@@ -92,7 +92,7 @@ func runGameUI() {
 	// game.stackLayout = append(game.stackLayout, &BusUi{})
 	// game.stackLayout = append(game.stackLayout, &PollenUi{})
 	switchLayout2 := &SwitchLayout{
-		interval: 60 * 10,
+		interval: 600, // 600 frames
 		children: []UiElement{
 			&BusUi{},
 			&WeatherUi{},
