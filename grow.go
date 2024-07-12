@@ -109,6 +109,16 @@ func (ui *GrowUi) buildTempGraph() *chart.Chart {
 	tempBoxHistoryTimes, tempBoxHistoryValues := mapToGraphSlice(growBoxTempHistory)
 	humidBoxHistoryTimes, humidBoxHistoryValues := mapToGraphSlice(growBoxHumidHistory)
 
+	outdoorHumidLine := map[time.Time]float64{}
+	if weatherCurrentData != nil && len(tempRoomHistoryTimes) > 0 {
+		rh := weatherCurrentData.Weather.RelativeHumidity
+		outdoorHumidLine[tempRoomHistoryTimes[0]] = rh
+		outdoorHumidLine[tempRoomHistoryTimes[len(tempRoomHistoryTimes)-1]] = rh
+	}
+
+	outdoorHumidTimes, outdoorHumidValues := mapToGraphSlice(outdoorHumidLine)
+	log.Println(outdoorHumidValues)
+
 	graph := chart.Chart{
 		XAxis: chart.XAxis{
 			ValueFormatter: chart.TimeMinuteValueFormatter,
@@ -116,7 +126,7 @@ func (ui *GrowUi) buildTempGraph() *chart.Chart {
 		YAxis: chart.YAxis{
 			Range: &chart.ContinuousRange{
 				Min: 15.0,
-				Max: 75.0,
+				Max: 90.0,
 			},
 		},
 		Series: []chart.Series{
@@ -125,7 +135,7 @@ func (ui *GrowUi) buildTempGraph() *chart.Chart {
 				XValues: tempRoomHistoryTimes,
 				YValues: tempRoomHistoryValues,
 				Style: chart.Style{
-					StrokeColor: chart.ColorRed,
+					StrokeColor: chart.ColorOrange,
 					StrokeWidth: 6,
 				},
 			},
@@ -134,7 +144,16 @@ func (ui *GrowUi) buildTempGraph() *chart.Chart {
 				XValues: humidRoomHistoryTimes,
 				YValues: humidRoomHistoryValues,
 				Style: chart.Style{
-					StrokeColor: chart.ColorBlue,
+					StrokeColor: chart.ColorOrange,
+					StrokeWidth: 6,
+				},
+			},
+			chart.TimeSeries{
+				Name:    "Outdoor RH",
+				XValues: outdoorHumidTimes,
+				YValues: outdoorHumidValues,
+				Style: chart.Style{
+					StrokeColor: chart.ColorGreen,
 					StrokeWidth: 6,
 				},
 			},
@@ -143,7 +162,7 @@ func (ui *GrowUi) buildTempGraph() *chart.Chart {
 				XValues: tempBoxHistoryTimes,
 				YValues: tempBoxHistoryValues,
 				Style: chart.Style{
-					StrokeColor: chart.ColorOrange,
+					StrokeColor: chart.ColorBlue,
 					StrokeWidth: 6,
 				},
 			},
@@ -152,7 +171,7 @@ func (ui *GrowUi) buildTempGraph() *chart.Chart {
 				XValues: humidBoxHistoryTimes,
 				YValues: humidBoxHistoryValues,
 				Style: chart.Style{
-					StrokeColor: chart.ColorAlternateBlue,
+					StrokeColor: chart.ColorBlue,
 					StrokeWidth: 6,
 				},
 			},
@@ -217,7 +236,7 @@ func (ui *GrowUi) buildVpdGraph() *chart.Chart {
 				XValues: vpdMinTimes,
 				YValues: vpdMinValues,
 				Style: chart.Style{
-					StrokeColor: chart.ColorRed,
+					StrokeColor: chart.ColorGreen,
 					StrokeWidth: 6,
 				},
 			},
@@ -226,7 +245,7 @@ func (ui *GrowUi) buildVpdGraph() *chart.Chart {
 				XValues: vpdRoomTimes,
 				YValues: vpdRoomValues,
 				Style: chart.Style{
-					StrokeColor: chart.ColorGreen,
+					StrokeColor: chart.ColorOrange,
 					StrokeWidth: 6,
 				},
 			},
@@ -244,7 +263,7 @@ func (ui *GrowUi) buildVpdGraph() *chart.Chart {
 				XValues: vpdMaxTimes,
 				YValues: vpdMaxValues,
 				Style: chart.Style{
-					StrokeColor: chart.ColorRed,
+					StrokeColor: chart.ColorGreen,
 					StrokeWidth: 6,
 				},
 			},

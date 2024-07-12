@@ -11,7 +11,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/text"
 )
 
-type BrightskyRes struct {
+type BrightskyPredictionRes struct {
 	Weather []struct {
 		Timestamp                  time.Time `json:"timestamp"`
 		SourceID                   int       `json:"source_id"`
@@ -59,21 +59,83 @@ type BrightskyRes struct {
 	} `json:"sources"`
 }
 
+type BrightskyCurrentRes struct {
+	Weather struct {
+		SourceID            int       `json:"source_id"`
+		Timestamp           time.Time `json:"timestamp"`
+		CloudCover          int       `json:"cloud_cover"`
+		Condition           string    `json:"condition"`
+		DewPoint            float64   `json:"dew_point"`
+		Solar10             float64   `json:"solar_10"`
+		Solar30             float64   `json:"solar_30"`
+		Solar60             float64   `json:"solar_60"`
+		Precipitation10     float64   `json:"precipitation_10"`
+		Precipitation30     float64   `json:"precipitation_30"`
+		Precipitation60     float64   `json:"precipitation_60"`
+		PressureMsl         float64   `json:"pressure_msl"`
+		RelativeHumidity    float64   `json:"relative_humidity"`
+		Visibility          int       `json:"visibility"`
+		WindDirection10     int       `json:"wind_direction_10"`
+		WindDirection30     int       `json:"wind_direction_30"`
+		WindDirection60     int       `json:"wind_direction_60"`
+		WindSpeed10         float64   `json:"wind_speed_10"`
+		WindSpeed30         float64   `json:"wind_speed_30"`
+		WindSpeed60         float64   `json:"wind_speed_60"`
+		WindGustDirection10 int       `json:"wind_gust_direction_10"`
+		WindGustDirection30 int       `json:"wind_gust_direction_30"`
+		WindGustDirection60 int       `json:"wind_gust_direction_60"`
+		WindGustSpeed10     float64   `json:"wind_gust_speed_10"`
+		WindGustSpeed30     float64   `json:"wind_gust_speed_30"`
+		WindGustSpeed60     float64   `json:"wind_gust_speed_60"`
+		Sunshine30          float64   `json:"sunshine_30"`
+		Sunshine60          float64   `json:"sunshine_60"`
+		Temperature         float64   `json:"temperature"`
+		FallbackSourceIds   struct {
+		} `json:"fallback_source_ids"`
+		Icon string `json:"icon"`
+	} `json:"weather"`
+	Sources []struct {
+		ID              int       `json:"id"`
+		DwdStationID    string    `json:"dwd_station_id"`
+		ObservationType string    `json:"observation_type"`
+		Lat             float64   `json:"lat"`
+		Lon             float64   `json:"lon"`
+		Height          float64   `json:"height"`
+		StationName     string    `json:"station_name"`
+		WmoStationID    string    `json:"wmo_station_id"`
+		FirstRecord     time.Time `json:"first_record"`
+		LastRecord      time.Time `json:"last_record"`
+		Distance        float64   `json:"distance"`
+	} `json:"sources"`
+}
+
 type WeatherUi struct {
 	screen *ebiten.Image
 }
 
-var weatherData *BrightskyRes
+var weatherCurrentData *BrightskyCurrentRes
+var weatherPredictionData *BrightskyPredictionRes
 
 func pollWeather() {
 	for {
-		fetchWeather()
-		time.Sleep(10 * time.Minute)
+		err := fetchWeatherCurrent()
+		if err != nil {
+			fmt.Println("Error fetching current weather data:", err)
+		}
+
+		err = fetchWeatherPrediction()
+		if err != nil {
+			fmt.Println("Error fetching prediction weather data:", err)
+		}
+
+		time.Sleep(5 * time.Minute)
 	}
 }
 
-func fetchWeather() error {
-	req, err := http.Get(fmt.Sprintf("https://api.brightsky.dev/weather?lat=51.1857454&lon=6.90171&date=%s", time.Now().Format("2006-01-02")))
+func fetchWeatherCurrent() error {
+	req, err := http.Get(
+		"https://api.brightsky.dev/current_weather?lat=51.1857454&lon=6.90171",
+	)
 	if err != nil {
 		return err
 	}
@@ -82,12 +144,37 @@ func fetchWeather() error {
 	if err != nil {
 		return err
 	}
-	var data BrightskyRes
+	var data BrightskyCurrentRes
 	err = json.Unmarshal(b, &data)
 	if err != nil {
 		return err
 	}
-	weatherData = &data
+	weatherCurrentData = &data
+
+	return nil
+}
+
+func fetchWeatherPrediction() error {
+	req, err := http.Get(
+		fmt.Sprintf(
+			"https://api.brightsky.dev/weather?lat=51.1857454&lon=6.90171&date=%s",
+			time.Now().Format("2006-01-02"),
+		),
+	)
+	if err != nil {
+		return err
+	}
+	defer req.Body.Close()
+	b, err := io.ReadAll(req.Body)
+	if err != nil {
+		return err
+	}
+	var data BrightskyPredictionRes
+	err = json.Unmarshal(b, &data)
+	if err != nil {
+		return err
+	}
+	weatherPredictionData = &data
 
 	return nil
 }
@@ -104,24 +191,35 @@ func (ui *WeatherUi) Bounds() (width, height int) {
 func (ui *WeatherUi) Draw() *ebiten.Image {
 	ui.screen.Fill(bgColor)
 
-	if weatherData == nil {
+	if weatherCurrentData == nil {
 		return ui.screen
 	}
 
 	// Find closest weather data
-	currentWeather := weatherData.Weather[0]
-	for _, w := range weatherData.Weather {
-		if w.Timestamp.After(time.Now()) {
-			currentWeather = w
-			break
-		}
-	}
+	// currentWeather := weatherData.Weather[0]
+	// for _, w := range weatherData.Weather {
+	// 	if w.Timestamp.After(time.Now()) {
+	// 		currentWeather = w
+	// 		break
+	// 	}
+	// }
 
 	// Draw weather text
-	weatherS := fmt.Sprintf("%.1f°c\n%s", currentWeather.Temperature, currentWeather.Condition)
+	weatherS := fmt.Sprintf(
+		"%.1f°c\n%s",
+		weatherCurrentData.Weather.Temperature,
+		weatherCurrentData.Weather.Condition,
+	)
 	text.Draw(ui.screen, weatherS, defaultFont, fontWidth*2, fontHeight, textColor)
 	// Draw weather icon
-	text.Draw(ui.screen, icon2Char(currentWeather.Icon), weatherFont, fontWidth*6, fontHeight*4, textColor)
+	text.Draw(
+		ui.screen,
+		icon2Char(weatherCurrentData.Weather.Icon),
+		weatherFont,
+		fontWidth*6,
+		fontHeight*4,
+		textColor,
+	)
 
 	// Draw pollen
 	pollenS := ""

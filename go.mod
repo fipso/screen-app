@@ -5,6 +5,7 @@ go 1.21.7
 require (
 	github.com/adshao/go-binance/v2 v2.4.5
 	github.com/bluenviron/gortsplib/v4 v4.8.2
+	github.com/davecgh/go-spew v1.1.1
 	github.com/eclipse/paho.mqtt.golang v1.4.3
 	github.com/hajimehoshi/ebiten/v2 v2.6.6
 	github.com/pion/rtp v1.8.6
