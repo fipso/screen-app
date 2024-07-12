@@ -253,7 +253,7 @@ func (ui *GrowUi) buildVpdGraph() *chart.Chart {
 				XValues: vpdMinTimes,
 				YValues: vpdMinValues,
 				Style: chart.Style{
-					StrokeColor: chart.ColorGreen,
+					StrokeColor: chart.ColorRed,
 					StrokeWidth: 6,
 				},
 			},
@@ -280,7 +280,7 @@ func (ui *GrowUi) buildVpdGraph() *chart.Chart {
 				XValues: vpdMaxTimes,
 				YValues: vpdMaxValues,
 				Style: chart.Style{
-					StrokeColor: chart.ColorGreen,
+					StrokeColor: chart.ColorRed,
 					StrokeWidth: 6,
 				},
 			},
