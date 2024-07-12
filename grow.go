@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"image"
 	"image/png"
 	"log"
 	"math"
@@ -21,7 +20,10 @@ import (
 type GrowUi struct {
 	screen *ebiten.Image
 
-	currentGraphImage *ebiten.Image
+	tempGraph      *chart.Chart
+	tempGraphImage *ebiten.Image
+	vpdGraph       *chart.Chart
+	vpdGraphImage  *ebiten.Image
 }
 
 var growRoomTempLast float64
@@ -70,7 +72,12 @@ func (ui *GrowUi) messagePubHandler(client mqtt.Client, msg mqtt.Message) {
 		growBoxHumidHistory[time.Now()] = growHumid
 	}
 
-	ui.renderGraph()
+	// Redraw the graph
+	ui.tempGraph = ui.buildTempGraph()
+	ui.vpdGraph = ui.buildVpdGraph()
+
+	ui.tempGraphImage = ui.renderGraph(ui.tempGraph)
+	ui.vpdGraphImage = ui.renderGraph(ui.vpdGraph)
 }
 
 func parseValue(msg mqtt.Message) (float64, error) {
@@ -156,7 +163,43 @@ func (ui *GrowUi) buildTempGraph() *chart.Chart {
 }
 
 func (ui *GrowUi) buildVpdGraph() *chart.Chart {
-        
+	tempRoomHistoryTimes, tempRoomHistoryValues := mapToGraphSlice(growRoomTempHistory)
+	_, humidRoomHistoryValues := mapToGraphSlice(growRoomHumidHistory)
+
+	tempBoxHistoryTimes, tempBoxHistoryValues := mapToGraphSlice(growBoxTempHistory)
+	_, humidBoxHistoryValues := mapToGraphSlice(growBoxHumidHistory)
+
+	vpdMinLine := map[time.Time]float64{}
+	vpdMaxLine := map[time.Time]float64{}
+	if len(tempRoomHistoryTimes) > 0 {
+		vpdMinLine[tempRoomHistoryTimes[0]] = 0.4
+		vpdMinLine[tempRoomHistoryTimes[len(tempRoomHistoryTimes)-1]] = 0.4
+
+		vpdMaxLine[tempRoomHistoryTimes[0]] = 1.2
+		vpdMaxLine[tempRoomHistoryTimes[len(tempRoomHistoryTimes)-1]] = 1.2
+	}
+
+	vpdMinTimes, vpdMinValues := mapToGraphSlice(vpdMinLine)
+	vpdMaxTimes, vpdMaxValues := mapToGraphSlice(vpdMaxLine)
+
+	vpdRoomLine := map[time.Time]float64{}
+	for i, t := range tempRoomHistoryTimes {
+		if i >= len(humidRoomHistoryValues) {
+			break
+		}
+		vpdRoomLine[t] = calculateVPD(tempRoomHistoryValues[i], humidRoomHistoryValues[i])
+	}
+
+	vpdBoxLine := map[time.Time]float64{}
+	for i, t := range tempBoxHistoryTimes {
+		if i >= len(humidBoxHistoryValues) {
+			break
+		}
+		vpdBoxLine[t] = calculateVPD(tempBoxHistoryValues[i], humidBoxHistoryValues[i])
+	}
+
+	vpdRoomTimes, vpdRoomValues := mapToGraphSlice(vpdRoomLine)
+	vpdBoxTimes, vpdBoxValues := mapToGraphSlice(vpdBoxLine)
 
 	graph := chart.Chart{
 		XAxis: chart.XAxis{
@@ -164,8 +207,8 @@ func (ui *GrowUi) buildVpdGraph() *chart.Chart {
 		},
 		YAxis: chart.YAxis{
 			Range: &chart.ContinuousRange{
-				Min: 0,
-				Max: 2,
+				Min: 0.2,
+				Max: 1.75,
 			},
 		},
 		Series: []chart.Series{
@@ -174,7 +217,25 @@ func (ui *GrowUi) buildVpdGraph() *chart.Chart {
 				XValues: vpdMinTimes,
 				YValues: vpdMinValues,
 				Style: chart.Style{
-					StrokeColor: chart.ColorYellow,
+					StrokeColor: chart.ColorRed,
+					StrokeWidth: 6,
+				},
+			},
+			chart.TimeSeries{
+				Name:    "VPD Room",
+				XValues: vpdRoomTimes,
+				YValues: vpdRoomValues,
+				Style: chart.Style{
+					StrokeColor: chart.ColorGreen,
+					StrokeWidth: 6,
+				},
+			},
+			chart.TimeSeries{
+				Name:    "VPD Box",
+				XValues: vpdBoxTimes,
+				YValues: vpdBoxValues,
+				Style: chart.Style{
+					StrokeColor: chart.ColorBlue,
 					StrokeWidth: 6,
 				},
 			},
@@ -183,7 +244,7 @@ func (ui *GrowUi) buildVpdGraph() *chart.Chart {
 				XValues: vpdMaxTimes,
 				YValues: vpdMaxValues,
 				Style: chart.Style{
-					StrokeColor: chart.ColorAlternateBlue,
+					StrokeColor: chart.ColorRed,
 					StrokeWidth: 6,
 				},
 			},
@@ -193,9 +254,9 @@ func (ui *GrowUi) buildVpdGraph() *chart.Chart {
 	return &graph
 }
 
-func (ui *GrowUi) renderGraph(graph *chart.Chart) *image.Image {
+func (ui *GrowUi) renderGraph(graph *chart.Chart) *ebiten.Image {
 	// Apply defaults
-	graph.DPI = 200
+	graph.DPI = 150
 	graph.Background = chart.Style{FillColor: chart.ColorTransparent}
 	graph.Canvas = chart.Style{
 		FillColor: drawing.Color{R: bgColor.R, G: bgColor.G, B: bgColor.B, A: bgColor.A},
@@ -219,7 +280,7 @@ func (ui *GrowUi) renderGraph(graph *chart.Chart) *image.Image {
 		log.Println("Could not decode graph png")
 	}
 
-	return &img
+	return ebiten.NewImageFromImage(img)
 }
 
 func calculateVPD(T, RH float64) float64 {
@@ -244,6 +305,12 @@ func (ui *GrowUi) Init() {
 	growBoxTempHistory = make(map[time.Time]float64)
 	growBoxHumidHistory = make(map[time.Time]float64)
 
+	ui.tempGraph = ui.buildTempGraph()
+	ui.tempGraphImage = ui.renderGraph(ui.tempGraph)
+
+	ui.vpdGraph = ui.buildVpdGraph()
+	ui.vpdGraphImage = ui.renderGraph(ui.vpdGraph)
+
 	// Connect to mqtt
 	broker := "homeserver"
 	port := 1883
@@ -265,20 +332,29 @@ func (ui *GrowUi) Init() {
 }
 
 func (ui *GrowUi) Bounds() (width, height int) {
-	return WIDTH, 1000
+	return WIDTH, 1400
 }
 
 func (ui *GrowUi) Draw() *ebiten.Image {
 	ui.screen.Fill(bgColor)
 
 	// Plot the temperature and humidity history
-	if ui.currentGraphImage != nil {
+	if ui.tempGraphImage != nil {
 		pos := ebiten.GeoM{}
 		pos.Translate(0, float64(linePadding*2))
 		opts := &ebiten.DrawImageOptions{
 			GeoM: pos,
 		}
-		ui.screen.DrawImage(ui.currentGraphImage, opts)
+		ui.screen.DrawImage(ui.tempGraphImage, opts)
+	}
+
+	if ui.vpdGraphImage != nil {
+		pos := ebiten.GeoM{}
+		pos.Translate(0, 1000)
+		opts := &ebiten.DrawImageOptions{
+			GeoM: pos,
+		}
+		ui.screen.DrawImage(ui.vpdGraphImage, opts)
 	}
 
 	text.Draw(
@@ -291,7 +367,7 @@ func (ui *GrowUi) Draw() *ebiten.Image {
 		),
 		defaultFont,
 		0,
-		500,
+		520,
 		textColor,
 	)
 
@@ -305,7 +381,7 @@ func (ui *GrowUi) Draw() *ebiten.Image {
 		),
 		defaultFont,
 		0,
-		775,
+		800,
 		textColor,
 	)
 
