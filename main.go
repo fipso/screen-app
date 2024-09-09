@@ -1,10 +1,13 @@
 package main
 
-func main() {
-	go pollBinance()
-	go pollBusTimes()
-	go pollPollen()
-        go pollWeather()
+import "github.com/fipso/screen-app/game"
 
-	runGameUI()
+func main() {
+	go game.SubscribeBinance()
+	go game.PollBusTimes()
+	go game.PollPollen()
+	go game.PollWeather()
+
+	g := game.SetupGameUI()
+	game.RunGame(g)
 }
