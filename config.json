@@ -1,0 +1,11 @@
+{
+  "fullscreen": false,
+  "grow_mqtt": {
+    "enabled": false,
+    "server": "192.168.178.102",
+    "room_temp": "",
+    "room_humid": "",
+    "box_temp": "",
+    "box_humid": ""
+  }
+}
