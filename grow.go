@@ -348,23 +348,34 @@ func (ui *GrowUi) Init() {
 	ui.vpdGraphImage = ui.renderGraph(ui.vpdGraph)
 
 	// Connect to mqtt
-	broker := "homeserver"
-	port := 1883
 	opts := mqtt.NewClientOptions()
-	opts.AddBroker(fmt.Sprintf("tcp://%s:%d", broker, port))
+	opts.AddBroker(fmt.Sprintf("tcp://%s", config.grow_mqtt.server))
 	opts.SetClientID(fmt.Sprintf("screen-app-%d", time.Now().Unix()))
 	opts.SetDefaultPublishHandler(ui.messagePubHandler)
 	client := mqtt.NewClient(opts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		log.Fatal(token.Error())
+		log.Println(token.Error())
+		return
 	}
 	log.Println("Connected to MQTT")
 
-	client.Subscribe("growroom/room/temp", 0, nil)
-	client.Subscribe("growroom/room/humid", 0, nil)
-	client.Subscribe("growbox/sensor/box_temperature/state", 0, nil)
-	client.Subscribe("growbox/sensor/box_humidity/state", 0, nil)
+	client.Subscribe(config.grow_mqtt.box_temp, 0, nil)
+	client.Subscribe(config.grow_mqtt.box_humid, 0, nil)
+	client.Subscribe(config.grow_mqtt.room_temp, 0, nil)
+	client.Subscribe(config.grow_mqtt.room_humid, 0, nil)
 	log.Printf("Subscribed to room and box temp/humid")
+
+	/*
+		[10:51:34][C][mqtt:157]:   Topic Prefix: 'growroom'
+		[10:51:34][C][mqtt:159]:   Log Topic: 'growroom/debug'
+		[10:51:34][C][mqtt:162]:   Availability: 'growroom/status'
+		[10:51:34][C][mqtt.sensor:028]: MQTT Sensor 'Grow Room Temperature':
+		[10:51:34][C][mqtt.sensor:032]:   State Topic: 'growroom/sensor/grow_room_temperature/state'
+		[10:51:34][C][mqtt.sensor:028]: MQTT Sensor 'Grow Room Humidity':
+		[10:51:34][C][mqtt.sensor:032]:   State Topic: 'growroom/sensor/grow_room_humidity/state'
+
+
+	*/
 }
 
 func (ui *GrowUi) Bounds() (width, height int) {
