@@ -1,5 +1,7 @@
 {
   "fullscreen": false,
+  "width": 600,
+  "height": 800,
   "grow_mqtt": {
     "enabled": false,
     "server": "192.168.178.102",

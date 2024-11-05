@@ -4,30 +4,39 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 type Config struct {
-	fullscreen bool
-	grow_mqtt  struct {
-		enabled    bool
-		server     string
-		box_temp   string
-		box_humid  string
-		room_temp  string
-		room_humid string
+	Fullscreen bool
+	Width      int
+	Height     int
+	Grow_mqtt  struct {
+		Enabled    bool
+		Server     string
+		Box_temp   string
+		Box_humid  string
+		Room_temp  string
+		Room_humid string
 	}
 }
 
 func loadConfig() {
+	configPath := "config.json"
+	if os.Getenv("CONFIG_PATH") != "" {
+		configPath = os.Getenv("CONFIG_PATH")
+	}
+
 	// Create config if not exists
-	if _, err := os.Stat("config.json"); os.IsNotExist(err) {
-		config = &Config{}
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		config = Config{}
 		// Save empty config to file
 		configB, err := json.Marshal(config)
 		if err != nil {
 			log.Fatal(err)
 		}
-		err = os.WriteFile("config.json", configB, 0644)
+		err = os.WriteFile(configPath, configB, 0644)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -35,7 +44,7 @@ func loadConfig() {
 	}
 
 	// Load config from file
-	configB, err := os.ReadFile("config.json")
+	configB, err := os.ReadFile(configPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -43,4 +52,5 @@ func loadConfig() {
 	if err != nil {
 		log.Fatal(err)
 	}
+        spew.Dump(config)
 }

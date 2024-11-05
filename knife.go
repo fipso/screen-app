@@ -3,18 +3,22 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"image/color"
 	"io"
 	"log"
 	"net/http"
+	"net/url"
+	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
 )
 
+var attackRecords *KnifeAttackRes
+
 type KnifeAttackUi struct {
 	screen *ebiten.Image
-
-	attackRecords *KnifeAttackRes
 }
 
 type KnifeAttackRes struct {
@@ -41,11 +45,26 @@ type KnifeAttackRes struct {
 	TotalPages int `json:"totalPages"`
 }
 
-func (ui *KnifeAttackUi) fetchKnifeAttacks() {
+func pollKnifeAttacks() {
+	for {
+		fetchKnifeAttacks()
+		time.Sleep(2 * time.Minute)
+	}
+}
+
+func fetchKnifeAttacks() {
+	// date format 2024-11-04 23:00:00.000Z
+	startDate := time.Now().AddDate(0, 0, -1).Format("2006-01-02 15:04:05.000Z")
+	endDate := time.Now().Format("2006-01-02 15:04:05.000Z")
+	filterRaw := fmt.Sprintf("date >= '%s' && date <= '%s' && geoData != null", startDate, endDate)
+	// urlencode filter
+	filter := url.QueryEscape(filterRaw)
+	log.Println("filter", filter)
+
 	client := &http.Client{}
 	req, err := http.NewRequest(
 		"GET",
-		"https://messerinzidenz.de/api/collections/incidents/records?page=1&perPage=500&skipTotal=1&fields=id%2Ctitle%2CgeoData%2Cdate%2Clink%2Clocation%2Cwounded&filter=date%20%3E%3D%20%272024-09-08%2022%3A00%3A00.000Z%27%20%26%26%20date%20%3C%3D%20%272024-09-09%2021%3A59%3A59.999Z%27%20%26%26%20geoData%20!%3D%20null",
+		"https://messerinzidenz.de/api/collections/incidents/records?page=1&perPage=500&skipTotal=1&fields=id%2Ctitle%2CgeoData%2Cdate%2Clink%2Clocation%2Cwounded&filter="+filter,
 		nil,
 	)
 	if err != nil {
@@ -71,7 +90,9 @@ func (ui *KnifeAttackUi) fetchKnifeAttacks() {
 		log.Fatal(err)
 	}
 
-	ui.attackRecords = &data
+	spew.Dump(data)
+
+	attackRecords = &data
 }
 
 func (ui *KnifeAttackUi) Init() {
@@ -80,21 +101,41 @@ func (ui *KnifeAttackUi) Init() {
 }
 
 func (ui *KnifeAttackUi) Bounds() (width, height int) {
-	return WIDTH, 1420
+	return WIDTH, 800
 }
 
 func (ui *KnifeAttackUi) Draw() *ebiten.Image {
 	text.Draw(
 		ui.screen,
 		fmt.Sprintf(
-			"Messerinzidenz %d",
-			len(ui.attackRecords.Items),
+			"messerinzidenz %d",
+			len(attackRecords.Items),
 		),
 		defaultFont,
 		0,
-		0,
+		100,
 		textColor,
 	)
+
+	for i, attack := range attackRecords.Items {
+		c := color.RGBA{255, 255, 255, 255}
+		if attack.Wounded {
+			c = color.RGBA{255, 0, 0, 255}
+		}
+
+		text.Draw(
+			ui.screen,
+			fmt.Sprintf(
+				"%s - %s",
+				attack.Location,
+				attack.Title,
+			),
+			smallFont,
+			0,
+			120+48*(i+1),
+			c,
+		)
+	}
 
 	return ui.screen
 }

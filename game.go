@@ -32,6 +32,7 @@ var defaultFont font.Face = basicfont.Face7x13
 var weatherFont font.Face = basicfont.Face7x13
 var clockFont font.Face = basicfont.Face7x13
 var tinyFont font.Face = basicfont.Face7x13
+var smallFont font.Face = basicfont.Face7x13
 
 var textColor = color.RGBA{255, 255, 255, 255}
 var bgColor = color.RGBA{0, 0, 0, 255}
@@ -83,9 +84,10 @@ func runGameUI() {
 		interval: 2000, // 2k frames
 		children: []UiElement{
 			&CryptoUi{},
+                        &KnifeAttackUi{},
 		},
 	}
-	if config.grow_mqtt.enabled {
+	if config.Grow_mqtt.Enabled {
 		switchLayout.children = append(switchLayout.children, &GrowUi{})
 	}
 
@@ -128,10 +130,11 @@ func runGameUI() {
 	weatherFont = loadFont("assets/fonts/weathericons-regular-webfont.ttf", 260)
 	clockFont = loadFont("assets/fonts/technology.bold.ttf", 100)
 	tinyFont = loadFont("assets/fonts/OpenSans-Regular.ttf", 32)
+	smallFont = loadFont("assets/fonts/OpenSans-Regular.ttf", 48)
 
-	ebiten.SetWindowSize(1080, 1920)
+	ebiten.SetWindowSize(config.Width, config.Height)
 	ebiten.SetWindowTitle("Screep App Game UI")
-	ebiten.SetFullscreen(config.fullscreen)
+	ebiten.SetFullscreen(config.Fullscreen)
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
 	}
