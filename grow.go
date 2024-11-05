@@ -349,7 +349,7 @@ func (ui *GrowUi) Init() {
 
 	// Connect to mqtt
 	opts := mqtt.NewClientOptions()
-	opts.AddBroker(fmt.Sprintf("tcp://%s", config.grow_mqtt.server))
+	opts.AddBroker(fmt.Sprintf("tcp://%s", config.Grow_mqtt.Server))
 	opts.SetClientID(fmt.Sprintf("screen-app-%d", time.Now().Unix()))
 	opts.SetDefaultPublishHandler(ui.messagePubHandler)
 	client := mqtt.NewClient(opts)
@@ -359,10 +359,10 @@ func (ui *GrowUi) Init() {
 	}
 	log.Println("Connected to MQTT")
 
-	client.Subscribe(config.grow_mqtt.box_temp, 0, nil)
-	client.Subscribe(config.grow_mqtt.box_humid, 0, nil)
-	client.Subscribe(config.grow_mqtt.room_temp, 0, nil)
-	client.Subscribe(config.grow_mqtt.room_humid, 0, nil)
+	client.Subscribe(config.Grow_mqtt.Box_temp, 0, nil)
+	client.Subscribe(config.Grow_mqtt.Box_humid, 0, nil)
+	client.Subscribe(config.Grow_mqtt.Room_temp, 0, nil)
+	client.Subscribe(config.Grow_mqtt.Room_humid, 0, nil)
 	log.Printf("Subscribed to room and box temp/humid")
 
 	/*
