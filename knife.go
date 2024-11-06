@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
 )
@@ -90,8 +89,6 @@ func fetchKnifeAttacks() {
 		log.Fatal(err)
 	}
 
-	spew.Dump(data)
-
 	attackRecords = &data
 }
 
@@ -105,6 +102,8 @@ func (ui *KnifeAttackUi) Bounds() (width, height int) {
 }
 
 func (ui *KnifeAttackUi) Draw() *ebiten.Image {
+        ui.screen.Fill(bgColor)
+
 	text.Draw(
 		ui.screen,
 		fmt.Sprintf(
@@ -118,7 +117,7 @@ func (ui *KnifeAttackUi) Draw() *ebiten.Image {
 	)
 
 	for i, attack := range attackRecords.Items {
-		c := color.RGBA{255, 255, 255, 255}
+		c := textColor
 		if attack.Wounded {
 			c = color.RGBA{255, 0, 0, 255}
 		}
