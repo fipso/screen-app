@@ -58,7 +58,7 @@ func fetchKnifeAttacks() {
 	filterRaw := fmt.Sprintf("date >= '%s' && date <= '%s' && geoData != null", startDate, endDate)
 	// urlencode filter
 	filter := url.QueryEscape(filterRaw)
-	log.Println("filter", filter)
+	//log.Println("filter", filter)
 
 	client := &http.Client{}
 	req, err := http.NewRequest(

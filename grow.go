@@ -364,18 +364,6 @@ func (ui *GrowUi) Init() {
 	client.Subscribe(config.Grow_mqtt.Room_temp, 0, nil)
 	client.Subscribe(config.Grow_mqtt.Room_humid, 0, nil)
 	log.Printf("Subscribed to room and box temp/humid")
-
-	/*
-		[10:51:34][C][mqtt:157]:   Topic Prefix: 'growroom'
-		[10:51:34][C][mqtt:159]:   Log Topic: 'growroom/debug'
-		[10:51:34][C][mqtt:162]:   Availability: 'growroom/status'
-		[10:51:34][C][mqtt.sensor:028]: MQTT Sensor 'Grow Room Temperature':
-		[10:51:34][C][mqtt.sensor:032]:   State Topic: 'growroom/sensor/grow_room_temperature/state'
-		[10:51:34][C][mqtt.sensor:028]: MQTT Sensor 'Grow Room Humidity':
-		[10:51:34][C][mqtt.sensor:032]:   State Topic: 'growroom/sensor/grow_room_humidity/state'
-
-
-	*/
 }
 
 func (ui *GrowUi) Bounds() (width, height int) {

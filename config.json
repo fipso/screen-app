@@ -3,11 +3,11 @@
   "width": 600,
   "height": 800,
   "grow_mqtt": {
-    "enabled": false,
-    "server": "192.168.178.102",
+    "enabled": true,
+    "server": "192.168.178.102:1883",
     "room_temp": "",
     "room_humid": "",
-    "box_temp": "",
-    "box_humid": ""
+    "box_temp": "growbox/sensor/box_temperature/state",
+    "box_humid": "growbox/sensor/box_humidity/state"
   }
 }
