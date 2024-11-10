@@ -85,7 +85,6 @@ func runGameUI() {
 		children: []UiElement{
 			&CryptoUi{},
                         &KnifeAttackUi{},
-                        &GrowUi{},
 		},
 	}
 	if config.Grow_mqtt.Enabled {
