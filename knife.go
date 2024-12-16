@@ -12,9 +12,12 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
+	"golang.org/x/net/html"
 )
 
 var attackRecords *KnifeAttackRes
+var focusedAttackIndex int
+var attackDetails map[string]string
 
 type KnifeAttackUi struct {
 	screen *ebiten.Image
@@ -92,6 +95,48 @@ func fetchKnifeAttacks() {
 	attackRecords = &data
 }
 
+func fetchAttackDetails(url string) (string, error) {
+	// Please crawl the url and extract the main text section
+	req, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer req.Body.Close()
+
+	// Find main text element in HTML
+	doc, err := html.Parse(req.Body)
+	if err != nil {
+		return "", err
+	}
+
+	var mainText string
+	var f func(*html.Node)
+	f = func(n *html.Node) {
+		if n.Type == html.ElementNode && n.Data == "main" {
+			mainText = extractText(n)
+			return
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			f(c)
+		}
+	}
+	f(doc)
+
+	return mainText, nil
+}
+
+func extractText(n *html.Node) string {
+	var text string
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		if c.Type == html.TextNode {
+			text += c.Data
+		} else if c.Type == html.ElementNode {
+			text += extractText(c)
+		}
+	}
+	return strings.TrimSpace(text)
+}
+
 func (ui *KnifeAttackUi) Init() {
 	width, height := ui.Bounds()
 	ui.screen = ebiten.NewImage(width, height)
@@ -102,7 +147,7 @@ func (ui *KnifeAttackUi) Bounds() (width, height int) {
 }
 
 func (ui *KnifeAttackUi) Draw() *ebiten.Image {
-        ui.screen.Fill(bgColor)
+	ui.screen.Fill(bgColor)
 
 	text.Draw(
 		ui.screen,
