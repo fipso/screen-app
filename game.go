@@ -83,8 +83,8 @@ func runGameUI() {
 	switchLayout := &SwitchLayout{
 		interval: 2000, // 2k frames
 		children: []UiElement{
-			//&CryptoUi{},
-			//&KnifeAttackUi{},
+			&CryptoUi{},
+			&KnifeAttackUi{},
 			//&GrowUi{},
 		},
 	}

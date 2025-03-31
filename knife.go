@@ -107,7 +107,7 @@ func (ui *KnifeAttackUi) Draw() *ebiten.Image {
 	text.Draw(
 		ui.screen,
 		fmt.Sprintf(
-			"messerinzidenz %d",
+			" messerinzidenz  %d",
 			len(attackRecords.Items),
 		),
 		defaultFont,

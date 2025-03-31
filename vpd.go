@@ -2,7 +2,6 @@ package main
 
 import (
 	"image/color"
-	"sync"
 
 	"math"
 	"strconv"
@@ -17,15 +16,21 @@ type VPDChart struct {
 	image       *ebiten.Image
 	width       int
 	height      int
-	sensors     []SensorData
+	sensors     []SensorValue
 	sensorNames []string
-	lock        sync.Mutex
+}
+
+type SensorValue struct {
+	temp  float64
+	humid float64
 }
 
 // NewVPDChart creates a new VPD chart
-func NewVPDChart(width, height int, sensors []SensorData, sensorNames []string) *VPDChart {
-	//sensorsData := make([]SensorData, len(sensors))
-	//copy(sensorsData, sensors)
+func NewVPDChart(width, height int, sensorNames []string) *VPDChart {
+	var sensors []SensorValue
+	for range sensorNames {
+		sensors = append(sensors, SensorValue{})
+	}
 	return &VPDChart{
 		width:       width,
 		height:      height,
@@ -36,9 +41,9 @@ func NewVPDChart(width, height int, sensors []SensorData, sensorNames []string) 
 }
 
 // Draw draws the VPD chart to the provided image
-func (v *VPDChart) Update() {
-	v.lock.Lock()
-	defer v.lock.Unlock()
+func (v *VPDChart) Update(sensorIndex int, temp, humid float64) {
+	v.sensors[sensorIndex].temp = temp
+	v.sensors[sensorIndex].humid = humid
 
 	// Clear the image with white background
 	v.image.Fill(color.White)
@@ -51,11 +56,11 @@ func (v *VPDChart) Update() {
 
 	// Draw markers
 	for i, sensor := range v.sensors {
-		if sensor.humidLast == 0 || sensor.tempLast == 0 {
+		if sensor.humid == 0 || sensor.temp == 0 {
 			continue
 		}
 
-		v.drawMarker(v.sensorNames[i], sensor.tempLast, sensor.humidLast, color.RGBA{0, 0, 0, 255})
+		v.drawMarker(v.sensorNames[i], sensor.temp, sensor.humid, color.RGBA{0, 0, 0, 255})
 	}
 }
 
