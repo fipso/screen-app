@@ -30,7 +30,7 @@ type CryptoUi struct {
 }
 
 var pairs []*CurrencyPair
-var symbols = []string{"BTC", "ETH", "SOL", "XRP", "APE", "RNDR", "RAY", "IOTA", "PEPE", "SHIB", "DOGE", "APT", "ADA", "MATIC", "BNB", "Link", "EUR"}
+var symbols = []string{"BTC", "ETH", "SOL", "XRP", "APE", "RAY", "IOTA", "PEPE", "SHIB", "DOGE", "APT", "ADA", "BNB", "Link", "EUR"}
 
 func pollBinance() {
 	// default usdt pairs

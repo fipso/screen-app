@@ -83,15 +83,17 @@ func runGameUI() {
 	switchLayout := &SwitchLayout{
 		interval: 2000, // 2k frames
 		children: []UiElement{
-			&CryptoUi{},
-                        &KnifeAttackUi{},
+			//&CryptoUi{},
+			//&KnifeAttackUi{},
+			//&GrowUi{},
 		},
 	}
 	if config.Grow_mqtt.Enabled {
 		switchLayout.children = append(switchLayout.children, &GrowUi{})
 	}
-
 	game.stackLayout = append(game.stackLayout, switchLayout)
+
+	//game.stackLayout = append(game.stackLayout, &GrowUi{})
 	//game.stackLayout = append(game.stackLayout, &GrowUi{})
 
 	// game.stackLayout = append(game.stackLayout, &BusUi{})

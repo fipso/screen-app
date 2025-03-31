@@ -13,12 +13,15 @@ type Config struct {
 	Width      int
 	Height     int
 	Grow_mqtt  struct {
-		Enabled    bool
-		Server     string
-		Box_temp   string
-		Box_humid  string
-		Room_temp  string
-		Room_humid string
+		Username string
+		Password string
+		Enabled bool
+		Server  string
+		Sensors []struct {
+			Name  string
+			Temp  string
+			Humid string
+		}
 	}
 }
 
@@ -52,5 +55,5 @@ func loadConfig() {
 	if err != nil {
 		log.Fatal(err)
 	}
-        spew.Dump(config)
+	spew.Dump(config)
 }

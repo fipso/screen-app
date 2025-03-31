@@ -216,10 +216,11 @@ type BusData struct {
 					ZonesUnited [][]string    `json:"zonesUnited"`
 				} `json:"zones"`
 			} `json:"fare"`
-			Properties struct {
-				VehicleAccess        []string `json:"vehicleAccess"`
-				PlanWheelChairAccess string   `json:"PlanWheelChairAccess"`
-			} `json:"properties"`
+			/*
+				Properties struct {
+					VehicleAccess        []string `json:"vehicleAccess"`
+					PlanWheelChairAccess string   `json:"PlanWheelChairAccess"`
+				} `json:"properties"`*/
 		} `json:"legs"`
 		Fare struct {
 			Tickets []struct {
@@ -326,7 +327,7 @@ func GetBusTime(origin, destination string) []busTime {
 	var busData BusData
 	err = json.Unmarshal(b, &busData)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(err, string(b))
 	}
 
 	var res []busTime
@@ -369,6 +370,9 @@ func (ui *BusUi) Draw() *ebiten.Image {
 		text.Draw(ui.screen, key, defaultFont, fontWidth*2+fontWidth*7*i, fontHeight, textColor)
 		times := busTimes[key]
 		for j, entry := range times {
+			if j >= 3 {
+				continue
+			}
 			c := textColor
 			if entry.delay.Minutes() > 3 {
 				c = color.RGBA{255, 0, 0, 255}

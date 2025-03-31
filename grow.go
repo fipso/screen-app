@@ -1,83 +1,57 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
-	"image/png"
 	"log"
-	"math"
-	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
-	"github.com/wcharczuk/go-chart/v2"
-	"github.com/wcharczuk/go-chart/v2/drawing"
 )
 
 type GrowUi struct {
 	screen *ebiten.Image
 
-	tempGraph      *chart.Chart
-	tempGraphImage *ebiten.Image
-	vpdGraph       *chart.Chart
-	vpdGraphImage  *ebiten.Image
+	vpdChart   *VPDChart
+	sensorData []SensorData
 }
 
-var growRoomTempLast float64
-var growRoomHumidLast float64
-var growRoomTempHistory map[time.Time]float64
-var growRoomHumidHistory map[time.Time]float64
-
-var growBoxTempLast float64
-var growBoxHumidLast float64
-var growBoxTempHistory map[time.Time]float64
-var growBoxHumidHistory map[time.Time]float64
+type SensorData struct {
+	tempLast     float64
+	humidLast    float64
+	tempHistory  map[time.Time]float64
+	humidHistory map[time.Time]float64
+}
 
 func (ui *GrowUi) messagePubHandler(client mqtt.Client, msg mqtt.Message) {
-	switch msg.Topic() {
-	case "growroom/room/temp":
-		growTemp, err := parseValue(msg)
+	for i, sensor := range config.Grow_mqtt.Sensors {
+		v, err := parseValue(msg)
 		if err != nil {
-			log.Println("Could not parse MQTT message")
-			return
+			log.Println("Could not parse MQTT message", v)
 		}
-		growRoomTempLast = growTemp
-		growRoomTempHistory[time.Now()] = growTemp
-	case "growroom/room/humid":
-		growHumid, err := parseValue(msg)
-		if err != nil {
-			log.Println("Could not parse MQTT message")
-			return
+		if msg.Topic() == sensor.Temp {
+			ui.sensorData[i].tempLast = v
+			ui.sensorData[i].tempHistory[time.Now()] = v
 		}
-		growRoomHumidLast = growHumid
-		growRoomHumidHistory[time.Now()] = growHumid
-	case "growbox/sensor/box_temperature/state":
-		growTemp, err := parseValue(msg)
-		if err != nil {
-			log.Println("Could not parse MQTT message")
-			return
+		if msg.Topic() == sensor.Humid {
+			ui.sensorData[i].humidLast = v
+			ui.sensorData[i].humidHistory[time.Now()] = v
 		}
-		growBoxTempLast = growTemp
-		growBoxTempHistory[time.Now()] = growTemp
-	case "growbox/sensor/box_humidity/state":
-		growHumid, err := parseValue(msg)
-		if err != nil {
-			log.Println("Could not parse MQTT message")
-			return
-		}
-		growBoxHumidLast = growHumid
-		growBoxHumidHistory[time.Now()] = growHumid
 	}
 
-	// Redraw the graph
-	ui.tempGraph = ui.buildTempGraph()
-	ui.vpdGraph = ui.buildVpdGraph()
+	ui.vpdChart.Update()
 
-	ui.tempGraphImage = ui.renderGraph(ui.tempGraph)
-	ui.vpdGraphImage = ui.renderGraph(ui.vpdGraph)
+	//ui.vpdChart.SetCurrentValues()
+
+	// Redraw the graph
+	// ui.tempGraph = ui.buildTempGraph()
+	// ui.vpdGraph = ui.buildVpdGraph()
+	// ui.tempGraphImage = ui.renderGraph(ui.tempGraph)
+	// ui.vpdGraphImage = ui.renderGraph(ui.vpdGraph)
+
 }
 
 func parseValue(msg mqtt.Message) (float64, error) {
@@ -85,29 +59,29 @@ func parseValue(msg mqtt.Message) (float64, error) {
 	return strconv.ParseFloat(s, 64)
 }
 
-func mapToGraphSlice(inputMap map[time.Time]float64) ([]time.Time, []float64) {
-	var times []time.Time
-	var values []float64
+// func mapToGraphSlice(inputMap map[time.Time]float64) ([]time.Time, []float64) {
+// 	var times []time.Time
+// 	var values []float64
 
-	for k, _ := range inputMap {
-		times = append(times, k)
-	}
-	sort.Slice(times, func(i, j int) bool {
-		return times[i].Before(times[j])
-	})
-	for _, t := range times {
-		values = append(values, inputMap[t])
-	}
+// 	for k, _ := range inputMap {
+// 		times = append(times, k)
+// 	}
+// 	sort.Slice(times, func(i, j int) bool {
+// 		return times[i].Before(times[j])
+// 	})
+// 	for _, t := range times {
+// 		values = append(values, inputMap[t])
+// 	}
 
-	return times, values
-}
+// 	return times, values
+// }
 
+/*
 func (ui *GrowUi) buildTempGraph() *chart.Chart {
-	tempRoomHistoryTimes, tempRoomHistoryValues := mapToGraphSlice(growRoomTempHistory)
-	humidRoomHistoryTimes, humidRoomHistoryValues := mapToGraphSlice(growRoomHumidHistory)
-
-	tempBoxHistoryTimes, tempBoxHistoryValues := mapToGraphSlice(growBoxTempHistory)
-	humidBoxHistoryTimes, humidBoxHistoryValues := mapToGraphSlice(growBoxHumidHistory)
+	for _, sensor := range ui.sensorData {
+		mapToGraphSlice(sensor.tempHistory)
+		mapToGraphSlice(sensor.humidHistory)
+	}
 
 	// Add outdoor RH for room times
 	outdoorHumidLine := map[time.Time]float64{}
@@ -196,8 +170,9 @@ func (ui *GrowUi) buildTempGraph() *chart.Chart {
 	}
 
 	return &graph
-}
+}*/
 
+/*
 func (ui *GrowUi) buildVpdGraph() *chart.Chart {
 	tempRoomHistoryTimes, tempRoomHistoryValues := mapToGraphSlice(growRoomTempHistory)
 	_, humidRoomHistoryValues := mapToGraphSlice(growRoomHumidHistory)
@@ -288,70 +263,77 @@ func (ui *GrowUi) buildVpdGraph() *chart.Chart {
 	}
 
 	return &graph
-}
+}*/
 
-func (ui *GrowUi) renderGraph(graph *chart.Chart) *ebiten.Image {
-	// Apply defaults
-	graph.DPI = 150
-	graph.Background = chart.Style{FillColor: chart.ColorTransparent}
-	graph.Canvas = chart.Style{
-		FillColor: drawing.Color{R: bgColor.R, G: bgColor.G, B: bgColor.B, A: bgColor.A},
-	}
+// func (ui *GrowUi) renderGraph(graph *chart.Chart) *ebiten.Image {
+// 	// Apply defaults
+// 	graph.DPI = 150
+// 	graph.Background = chart.Style{FillColor: chart.ColorTransparent}
+// 	graph.Canvas = chart.Style{
+// 		FillColor: drawing.Color{R: bgColor.R, G: bgColor.G, B: bgColor.B, A: bgColor.A},
+// 	}
 
-	graph.Elements = []chart.Renderable{
-		chart.Legend(graph, chart.Style{
-			FillColor: graph.Background.FillColor,
-		}),
-	}
+// 	graph.Elements = []chart.Renderable{
+// 		chart.Legend(graph, chart.Style{
+// 			FillColor: graph.Background.FillColor,
+// 		}),
+// 	}
 
-	buffer := bytes.NewBuffer([]byte{})
-	err := graph.Render(chart.PNG, buffer)
-	if err != nil {
-		log.Println("Could not render graph")
-		log.Println(err)
-	}
+// 	buffer := bytes.NewBuffer([]byte{})
+// 	err := graph.Render(chart.PNG, buffer)
+// 	if err != nil {
+// 		log.Println("Could not render graph")
+// 		log.Println(err)
+// 	}
 
-	img, err := png.Decode(buffer)
-	if err != nil {
-		log.Println("Could not decode graph png")
-	}
+// 	img, err := png.Decode(buffer)
+// 	if err != nil {
+// 		log.Println("Could not decode graph png")
+// 	}
 
-	return ebiten.NewImageFromImage(img)
-}
+// 	return ebiten.NewImageFromImage(img)
+// }
 
-func calculateVPD(T, RH float64) float64 {
-	// Calculate the saturated vapor pressure (es) in kPa
-	es := (610.7 * math.Pow(10, (7.5*T)/(237.3+T))) / 1000
+// func calculateVPD(T, RH float64) float64 {
+// 	// Calculate the saturated vapor pressure (es) in kPa
+// 	es := (610.7 * math.Pow(10, (7.5*T)/(237.3+T))) / 1000
 
-	// Calculate the actual vapor pressure (ea) in kPa
-	ea := es * (RH / 100)
+// 	// Calculate the actual vapor pressure (ea) in kPa
+// 	ea := es * (RH / 100)
 
-	// Calculate VPD in kPa
-	vpd := es - ea
+// 	// Calculate VPD in kPa
+// 	vpd := es - ea
 
-	return vpd
-}
+// 	return vpd
+// }
 
 func (ui *GrowUi) Init() {
 	width, height := ui.Bounds()
 	ui.screen = ebiten.NewImage(width, height)
 
-	growRoomTempHistory = make(map[time.Time]float64)
-	growRoomHumidHistory = make(map[time.Time]float64)
-	growBoxTempHistory = make(map[time.Time]float64)
-	growBoxHumidHistory = make(map[time.Time]float64)
+	var sensorNames []string
+	for _, s := range config.Grow_mqtt.Sensors {
+		sensorNames = append(sensorNames, s.Name)
+		ui.sensorData = append(ui.sensorData, SensorData{
+			tempLast:     0,
+			humidLast:    0,
+			tempHistory:  make(map[time.Time]float64),
+			humidHistory: make(map[time.Time]float64),
+		})
+	}
 
-	ui.tempGraph = ui.buildTempGraph()
-	ui.tempGraphImage = ui.renderGraph(ui.tempGraph)
+	ui.vpdChart = NewVPDChart(width-20, 600, ui.sensorData, sensorNames)
 
-	ui.vpdGraph = ui.buildVpdGraph()
-	ui.vpdGraphImage = ui.renderGraph(ui.vpdGraph)
+	//ui.tempGraph = ui.buildTempGraph()
+	//ui.tempGraphImage = ui.renderGraph(ui.tempGraph)
 
 	// Connect to mqtt
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker(fmt.Sprintf("tcp://%s", config.Grow_mqtt.Server))
 	opts.SetClientID(fmt.Sprintf("screen-app-%d", time.Now().Unix()))
 	opts.SetDefaultPublishHandler(ui.messagePubHandler)
+	opts.SetUsername(config.Grow_mqtt.Username)
+	opts.SetPassword(config.Grow_mqtt.Password)
 	client := mqtt.NewClient(opts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		log.Println(token.Error())
@@ -359,11 +341,13 @@ func (ui *GrowUi) Init() {
 	}
 	log.Println("Connected to MQTT")
 
-	client.Subscribe(config.Grow_mqtt.Box_temp, 0, nil)
-	client.Subscribe(config.Grow_mqtt.Box_humid, 0, nil)
-	client.Subscribe(config.Grow_mqtt.Room_temp, 0, nil)
-	client.Subscribe(config.Grow_mqtt.Room_humid, 0, nil)
-	log.Printf("Subscribed to room and box temp/humid")
+	for _, sensor := range config.Grow_mqtt.Sensors {
+		log.Println("Subscribing to", sensor.Temp, " and ", sensor.Humid)
+		client.Subscribe(sensor.Humid, 0, nil)
+		client.Subscribe(sensor.Temp, 0, nil)
+	}
+
+	log.Println("GrowUI Initialized")
 }
 
 func (ui *GrowUi) Bounds() (width, height int) {
@@ -374,51 +358,48 @@ func (ui *GrowUi) Draw() *ebiten.Image {
 	ui.screen.Fill(bgColor)
 
 	// Plot the temperature and humidity history
-	if ui.tempGraphImage != nil {
-		pos := ebiten.GeoM{}
-		pos.Translate(0, float64(linePadding*2))
-		opts := &ebiten.DrawImageOptions{
-			GeoM: pos,
+	/*
+		if ui.tempGraphImage != nil {
+			pos := ebiten.GeoM{}
+			pos.Translate(0, float64(linePadding*2))
+			opts := &ebiten.DrawImageOptions{
+				GeoM: pos,
+			}
+			ui.screen.DrawImage(ui.tempGraphImage, opts)
 		}
-		ui.screen.DrawImage(ui.tempGraphImage, opts)
+
+		if ui.vpdGraphImage != nil {
+			pos := ebiten.GeoM{}
+			pos.Translate(0, 1000)
+			opts := &ebiten.DrawImageOptions{
+				GeoM: pos,
+			}
+			ui.screen.DrawImage(ui.vpdGraphImage, opts)
+		}*/
+
+	ui.vpdChart.lock.Lock()
+	pos := ebiten.GeoM{}
+	pos.Translate(0, 50)
+	ui.screen.DrawImage(ui.vpdChart.image, &ebiten.DrawImageOptions{
+		GeoM: pos,
+	})
+	ui.vpdChart.lock.Unlock()
+
+	for i, sensor := range config.Grow_mqtt.Sensors {
+		text.Draw(
+			ui.screen,
+			fmt.Sprintf(
+				"%s\n%.2f temp %.2f rh",
+				strings.ToLower(sensor.Name),
+				ui.sensorData[i].tempLast,
+				ui.sensorData[i].humidLast,
+			),
+			defaultFont,
+			0,
+			800+(i*200),
+			textColor,
+		)
 	}
-
-	if ui.vpdGraphImage != nil {
-		pos := ebiten.GeoM{}
-		pos.Translate(0, 1000)
-		opts := &ebiten.DrawImageOptions{
-			GeoM: pos,
-		}
-		ui.screen.DrawImage(ui.vpdGraphImage, opts)
-	}
-
-	text.Draw(
-		ui.screen,
-		fmt.Sprintf(
-			"room\n%.2f temp %.2f rh\n%.2f vpd",
-			growRoomTempLast,
-			growRoomHumidLast,
-			calculateVPD(growRoomTempLast, growRoomHumidLast),
-		),
-		defaultFont,
-		0,
-		520,
-		textColor,
-	)
-
-	text.Draw(
-		ui.screen,
-		fmt.Sprintf(
-			"box\n%.2f temp %.2f rh\n%.2f vpd",
-			growBoxTempLast,
-			growBoxHumidLast,
-			calculateVPD(growBoxTempLast, growBoxHumidLast),
-		),
-		defaultFont,
-		0,
-		800,
-		textColor,
-	)
 
 	return ui.screen
 }
