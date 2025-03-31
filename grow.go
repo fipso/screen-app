@@ -40,9 +40,8 @@ func (ui *GrowUi) messagePubHandler(client mqtt.Client, msg mqtt.Message) {
 			ui.sensorData[i].humidLast = v
 			ui.sensorData[i].humidHistory[time.Now()] = v
 		}
+		ui.vpdChart.Update(i, ui.sensorData[i].tempLast, ui.sensorData[i].humidLast)
 	}
-
-	ui.vpdChart.Update()
 
 	//ui.vpdChart.SetCurrentValues()
 
@@ -322,7 +321,7 @@ func (ui *GrowUi) Init() {
 		})
 	}
 
-	ui.vpdChart = NewVPDChart(width-20, 600, ui.sensorData, sensorNames)
+	ui.vpdChart = NewVPDChart(width-80, 600, sensorNames)
 
 	//ui.tempGraph = ui.buildTempGraph()
 	//ui.tempGraphImage = ui.renderGraph(ui.tempGraph)
@@ -377,13 +376,11 @@ func (ui *GrowUi) Draw() *ebiten.Image {
 			ui.screen.DrawImage(ui.vpdGraphImage, opts)
 		}*/
 
-	ui.vpdChart.lock.Lock()
 	pos := ebiten.GeoM{}
 	pos.Translate(0, 50)
 	ui.screen.DrawImage(ui.vpdChart.image, &ebiten.DrawImageOptions{
 		GeoM: pos,
 	})
-	ui.vpdChart.lock.Unlock()
 
 	for i, sensor := range config.Grow_mqtt.Sensors {
 		text.Draw(
