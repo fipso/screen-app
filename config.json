@@ -3,11 +3,21 @@
   "width": 600,
   "height": 800,
   "grow_mqtt": {
+    "username": "fipso",
+    "password": "spider889",
     "enabled": true,
     "server": "192.168.178.102:1883",
-    "room_temp": "",
-    "room_humid": "",
-    "box_temp": "growbox/sensor/box_temperature/state",
-    "box_humid": "growbox/sensor/box_humidity/state"
+    "sensors": [
+      {
+        "name": "Big Box",
+        "temp": "bigbox/sensor/grow_box_temperature/state",
+        "humid": "bigbox/sensor/grow_box_humidity/state"
+      },
+      {
+        "name": "Small Box",
+        "temp": "growroom/sensor/grow_box_temperature/state",
+        "humid": "growroom/sensor/grow_box_humidity/state"
+      }
+    ]
   }
 }
