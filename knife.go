@@ -102,7 +102,7 @@ func (ui *KnifeAttackUi) Init() {
 }
 
 func (ui *KnifeAttackUi) Bounds() (width, height int) {
-	return WIDTH, 800
+	return config.Width, 800
 }
 
 func (ui *KnifeAttackUi) Draw() *ebiten.Image {

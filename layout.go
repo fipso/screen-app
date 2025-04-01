@@ -26,7 +26,7 @@ func (l *SwitchLayout) Bounds() (width, height int) {
 		}
 	}
 
-	return WIDTH, maxHeight
+	return config.Width, maxHeight
 }
 
 func (l *SwitchLayout) Init() {
@@ -36,7 +36,7 @@ func (l *SwitchLayout) Init() {
 	}
 
 	_, height := l.Bounds()
-	l.image = ebiten.NewImage(WIDTH, height)
+	l.image = ebiten.NewImage(config.Width, height)
 }
 
 func (l *SwitchLayout) Draw() *ebiten.Image {
@@ -59,14 +59,14 @@ func (l *SwitchLayout) Draw() *ebiten.Image {
 
 		// Draw the next child
 		pos.Reset()
-		pos.Translate(float64(l.transitionFrame-WIDTH), 0)
+		pos.Translate(float64(l.transitionFrame-config.Width), 0)
 		colorm.DrawImage(l.image, nextChildImage, colorm.ColorM{}, &colorm.DrawImageOptions{
 			GeoM: pos,
 		})
 
 		l.transitionFrame += 12
 
-		if l.transitionFrame == WIDTH {
+		if l.transitionFrame == config.Width {
 			l.currentIndex = (l.currentIndex + 1) % len(l.children)
 			l.transition = false
 			l.transitionFrame = 0

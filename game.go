@@ -19,11 +19,8 @@ type UiElement interface {
 }
 
 // Ebiten units
-//const WIDTH = 360 / 2
-//const HEIGHT = 640 / 2
-
-const WIDTH = 1080
-const HEIGHT = 1920
+//const config.Width = 360 / 2
+//const config.Height = 640 / 2
 
 var fontHeight = 72
 var fontWidth = 60
@@ -69,7 +66,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 
 	//s := ebiten.DeviceScaleFactor()
 	//return int(float64(outsideWidth) * s), int(float64(outsideHeight) * s)
-	return WIDTH, HEIGHT
+	return config.Width, config.Height
 	//return 1080, 1920
 }
 

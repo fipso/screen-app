@@ -350,7 +350,7 @@ func (ui *GrowUi) Init() {
 }
 
 func (ui *GrowUi) Bounds() (width, height int) {
-	return WIDTH, 1420
+	return config.Width, 1420
 }
 
 func (ui *GrowUi) Draw() *ebiten.Image {

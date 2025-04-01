@@ -362,7 +362,7 @@ func (ui *BusUi) Init() {
 }
 
 func (ui *BusUi) Bounds() (width, height int) {
-	return WIDTH, (fontHeight + linePadding) * 5
+	return config.Width, (fontHeight + linePadding) * 5
 }
 
 func (ui *BusUi) Draw() *ebiten.Image {
