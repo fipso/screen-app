@@ -67,7 +67,8 @@ func fetchKnifeAttacks() {
 		nil,
 	)
 	if err != nil {
-		log.Fatal(err)
+		log.Println("Could build knife attacks req", err)
+		return
 	}
 	req.Header.Set("content-type", "application/json")
 	req.Header.Set(
@@ -76,17 +77,20 @@ func fetchKnifeAttacks() {
 	)
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		log.Println("Could not fetch knife attacks JSON", err)
+		return
 	}
 	defer resp.Body.Close()
 	bodyData, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal(err)
+		log.Println("Could not fetch knife attacks JSON", err)
+		return
 	}
 	var data KnifeAttackRes
 	err = json.Unmarshal(bodyData, &data)
 	if err != nil {
-		log.Fatal(err)
+		log.Println("Could not fetch knife attacks JSON", err)
+		return
 	}
 
 	attackRecords = &data
@@ -102,7 +106,7 @@ func (ui *KnifeAttackUi) Bounds() (width, height int) {
 }
 
 func (ui *KnifeAttackUi) Draw() *ebiten.Image {
-        ui.screen.Fill(bgColor)
+	ui.screen.Fill(bgColor)
 
 	text.Draw(
 		ui.screen,
@@ -116,24 +120,53 @@ func (ui *KnifeAttackUi) Draw() *ebiten.Image {
 		textColor,
 	)
 
-	for i, attack := range attackRecords.Items {
+	height := 0
+	for _, attack := range attackRecords.Items {
 		c := textColor
 		if attack.Wounded {
 			c = color.RGBA{255, 0, 0, 255}
 		}
 
-		text.Draw(
-			ui.screen,
-			fmt.Sprintf(
+		var t string
+		if len(attack.Title)+len(attack.Location) < 40 {
+			t = fmt.Sprintf(
 				"%s - %s",
 				attack.Location,
 				attack.Title,
-			),
-			smallFont,
-			0,
-			120+48*(i+1),
-			c,
-		)
+			)
+			text.Draw(
+				ui.screen,
+				t,
+				smallFont,
+				0,
+				190+height,
+				c,
+			)
+			height += 48 + linePadding
+		} else {
+			t = fmt.Sprintf(
+				"%s:",
+				attack.Location,
+			)
+			text.Draw(
+				ui.screen,
+				t,
+				smallFont,
+				0,
+				190+height,
+				c,
+			)
+			height += 48
+			text.Draw(
+				ui.screen,
+				attack.Title,
+				smallFont,
+				20,
+				190+height,
+				c,
+			)
+			height += 48 + linePadding
+		}
 	}
 
 	return ui.screen

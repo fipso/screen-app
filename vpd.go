@@ -14,6 +14,7 @@ import (
 // VPDChart represents a VPD chart that can be updated and drawn
 type VPDChart struct {
 	image       *ebiten.Image
+	vpdZones    *ebiten.Image
 	width       int
 	height      int
 	sensors     []SensorValue
@@ -31,6 +32,7 @@ func NewVPDChart(width, height int, sensorNames []string) *VPDChart {
 	for range sensorNames {
 		sensors = append(sensors, SensorValue{})
 	}
+
 	return &VPDChart{
 		width:       width,
 		height:      height,
@@ -40,19 +42,20 @@ func NewVPDChart(width, height int, sensorNames []string) *VPDChart {
 	}
 }
 
-// Draw draws the VPD chart to the provided image
 func (v *VPDChart) Update(sensorIndex int, temp, humid float64) {
 	v.sensors[sensorIndex].temp = temp
 	v.sensors[sensorIndex].humid = humid
+}
 
-	// Clear the image with white background
-	v.image.Fill(color.White)
+func (v *VPDChart) Draw() {
+	if v.vpdZones == nil {
+		// Draw VPD zones
+		v.vpdZones = ebiten.NewImage(v.width, v.height)
+		v.drawVPDZones()
+	}
 
-	// Draw grid and scales
-	// v.drawScalesAndGrid()
-
-	// Draw VPD zones
-	v.drawVPDZones()
+	// Draw cached vpd zones background
+	v.image.DrawImage(v.vpdZones, nil)
 
 	// Draw markers
 	for i, sensor := range v.sensors {
@@ -91,7 +94,7 @@ func (v *VPDChart) drawVPDZones() {
 			op.GeoM.Translate(float64(x), float64(y))
 			//op.ColorM.Scale(float64(c.R)/255, float64(c.G)/255, float64(c.B)/255, float64(c.A)/255)
 
-			v.image.Set(x, y, c)
+			v.vpdZones.Set(x, y, c)
 
 			// Create a 1x1 pixel image with the color
 			// pixel := ebiten.NewImage(1, 1)

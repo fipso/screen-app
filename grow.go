@@ -341,9 +341,9 @@ func (ui *GrowUi) Init() {
 	log.Println("Connected to MQTT")
 
 	for _, sensor := range config.Grow_mqtt.Sensors {
-		log.Println("Subscribing to", sensor.Temp, " and ", sensor.Humid)
-		client.Subscribe(sensor.Humid, 0, nil)
+		log.Println("Subscribing to", sensor.Temp, "and", sensor.Humid)
 		client.Subscribe(sensor.Temp, 0, nil)
+		client.Subscribe(sensor.Humid, 0, nil)
 	}
 
 	log.Println("GrowUI Initialized")
@@ -378,6 +378,7 @@ func (ui *GrowUi) Draw() *ebiten.Image {
 
 	pos := ebiten.GeoM{}
 	pos.Translate(0, 50)
+	ui.vpdChart.Draw()
 	ui.screen.DrawImage(ui.vpdChart.image, &ebiten.DrawImageOptions{
 		GeoM: pos,
 	})
