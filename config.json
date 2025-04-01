@@ -1,7 +1,7 @@
 {
   "fullscreen": false,
-  "width": 600,
-  "height": 800,
+  "width": 1080,
+  "height": 1920,
   "grow_mqtt": {
     "username": "fipso",
     "password": "spider889",

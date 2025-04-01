@@ -126,7 +126,7 @@ func fetchPollen() error {
 // }
 
 // func (ui *PollenUi) Bounds() (width, height int) {
-// 	return WIDTH, fontHeight + linePadding
+// 	return config.Width, fontHeight + linePadding
 // }
 
 // func (ui *PollenUi) Draw() *ebiten.Image {

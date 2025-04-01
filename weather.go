@@ -185,7 +185,7 @@ func (ui *WeatherUi) Init() {
 }
 
 func (ui *WeatherUi) Bounds() (width, height int) {
-	return WIDTH, fontHeight * 6
+	return config.Width, fontHeight * 6
 }
 
 func (ui *WeatherUi) Draw() *ebiten.Image {
