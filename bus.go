@@ -298,7 +298,7 @@ func pollBusTimes() {
 	var err error
 	loc, err = time.LoadLocation("Europe/Berlin")
 	if err != nil {
-		log.Fatal(err)
+		log.Println("Could not load time", err)
 	}
 
 	for {
@@ -316,18 +316,21 @@ func GetBusTime(origin, destination string) []busTime {
 		origin,
 	))
 	if err != nil {
-		log.Fatal(err)
+		log.Println("Could not fetch bus times", err)
+		return []busTime{}
 	}
 	defer resp.Body.Close()
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal(err)
+		log.Println("Could not fetch bus times", err)
+		return []busTime{}
 	}
 
 	var busData BusData
 	err = json.Unmarshal(b, &busData)
 	if err != nil {
-		log.Fatal(err, string(b))
+		log.Println("Could not fetch bus times", err)
+		return []busTime{}
 	}
 
 	var res []busTime
