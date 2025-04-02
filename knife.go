@@ -14,7 +14,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/text"
 )
 
-var attackRecords *KnifeAttackRes
+var attackRecords KnifeAttackRes
 
 type KnifeAttackUi struct {
 	screen *ebiten.Image
@@ -93,7 +93,7 @@ func fetchKnifeAttacks() {
 		return
 	}
 
-	attackRecords = &data
+	attackRecords = data
 }
 
 func (ui *KnifeAttackUi) Init() {
@@ -102,7 +102,7 @@ func (ui *KnifeAttackUi) Init() {
 }
 
 func (ui *KnifeAttackUi) Bounds() (width, height int) {
-	return config.Width, 800
+	return config.Width, 1200
 }
 
 func (ui *KnifeAttackUi) Draw() *ebiten.Image {
