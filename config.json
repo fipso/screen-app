@@ -20,7 +20,6 @@
       }
     ]
   },
-  "default_font_size": 72,
   "layout": [
     {
       "type": "clock"
@@ -33,10 +32,10 @@
           "type": "crypto"
         },
         {
-          "type": "knife"
+          "type": "grow"
         },
         {
-          "type": "grow"
+          "type": "knife"
         }
       ]
     },
