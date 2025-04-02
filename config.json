@@ -19,5 +19,38 @@
         "humid": "growroom/sensor/grow_box_humidity/state"
       }
     ]
-  }
+  },
+  "default_font_size": 72,
+  "layout": [
+    {
+      "type": "clock"
+    },
+    {
+      "type": "switch",
+      "switchInterval": 2000,
+      "children": [
+        {
+          "type": "crypto"
+        },
+        {
+          "type": "knife"
+        },
+        {
+          "type": "grow"
+        }
+      ]
+    },
+    {
+      "type": "switch",
+      "switchInterval": 600,
+      "children": [
+        {
+          "type": "weather"
+        },
+        {
+          "type": "bus"
+        }
+      ]
+    }
+  ]
 }

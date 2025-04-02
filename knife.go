@@ -161,7 +161,7 @@ func (ui *KnifeAttackUi) Draw() *ebiten.Image {
 				ui.screen,
 				attack.Title,
 				smallFont,
-				20,
+				40,
 				190+height,
 				c,
 			)
