@@ -70,39 +70,78 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 	//return 1080, 1920
 }
 
+func parseUiElement(configElem LayoutElement) *UiElement {
+	var element UiElement
+	switch configElem.Type {
+	case LayoutElementSwitch:
+		var children []UiElement
+		for _, configChild := range configElem.Children {
+			child := parseUiElement(configChild)
+			children = append(children, *child)
+		}
+		element = &SwitchLayout{
+			interval: configElem.SwitchInterval,
+			children: children,
+		}
+	case LayoutElementGrow:
+		element = &GrowUi{}
+	case LayoutElementBus:
+		element = &BusUi{}
+	case LayoutElementWeather:
+		element = &WeatherUi{}
+	case LayoutElementKnife:
+		element = &KnifeAttackUi{}
+	case LayoutElementClock:
+		element = &ClockUi{}
+	case LayoutElementCrypto:
+		element = &CryptoUi{}
+	default:
+		log.Fatalf("CONFIG | Unknown layout element type: %s", configElem.Type)
+	}
+
+	return &element
+}
+
 func runGameUI() {
 	game := &Game{}
 
+	// Build UI Layout from config
+	for _, layoutElement := range config.Layout {
+		element := parseUiElement(layoutElement)
+		game.stackLayout = append(game.stackLayout, *element)
+	}
+
 	// Load UI elements
-	game.stackLayout = append(game.stackLayout, &ClockUi{})
+	/*
+		game.stackLayout = append(game.stackLayout, &ClockUi{})
 
-	// SwitchLayouts
-	switchLayout := &SwitchLayout{
-		interval: 2000, // 2k frames
-		children: []UiElement{
-			&CryptoUi{},
-			&KnifeAttackUi{},
-			//&GrowUi{},
-		},
-	}
-	if config.Grow_mqtt.Enabled {
-		switchLayout.children = append(switchLayout.children, &GrowUi{})
-	}
-	game.stackLayout = append(game.stackLayout, switchLayout)
+		// SwitchLayouts
+		switchLayout := &SwitchLayout{
+			interval: 2000, // 2k frames
+			children: []UiElement{
+				&CryptoUi{},
+				&KnifeAttackUi{},
+				//&GrowUi{},
+			},
+		}
+		if config.Grow_mqtt.Enabled {
+			switchLayout.children = append(switchLayout.children, &GrowUi{})
+		}
+		game.stackLayout = append(game.stackLayout, switchLayout)
 
-	//game.stackLayout = append(game.stackLayout, &GrowUi{})
-	//game.stackLayout = append(game.stackLayout, &GrowUi{})
+		//game.stackLayout = append(game.stackLayout, &GrowUi{})
+		//game.stackLayout = append(game.stackLayout, &GrowUi{})
 
-	// game.stackLayout = append(game.stackLayout, &BusUi{})
-	// game.stackLayout = append(game.stackLayout, &PollenUi{})
-	switchLayout2 := &SwitchLayout{
-		interval: 600, // 600 frames
-		children: []UiElement{
-			&BusUi{},
-			&WeatherUi{},
-		},
-	}
-	game.stackLayout = append(game.stackLayout, switchLayout2)
+		// game.stackLayout = append(game.stackLayout, &BusUi{})
+		// game.stackLayout = append(game.stackLayout, &PollenUi{})
+		switchLayout2 := &SwitchLayout{
+			interval: 600, // 600 frames
+			children: []UiElement{
+				&BusUi{},
+				&WeatherUi{},
+			},
+		}
+		game.stackLayout = append(game.stackLayout, switchLayout2)*/
 	// game.stackLayout = append(game.stackLayout, &PollenUi{})
 
 	for _, ui := range game.stackLayout {
@@ -125,7 +164,7 @@ func runGameUI() {
 	}()
 
 	//Load font
-	defaultFont = loadFont("assets/fonts/MajorMonoDisplay-Regular.ttf", 72)
+	defaultFont = loadFont("assets/fonts/MajorMonoDisplay-Regular.ttf", float64(config.Default_Font_Size))
 	weatherFont = loadFont("assets/fonts/weathericons-regular-webfont.ttf", 260)
 	clockFont = loadFont("assets/fonts/technology.bold.ttf", 100)
 	tinyFont = loadFont("assets/fonts/OpenSans-Regular.ttf", 32)

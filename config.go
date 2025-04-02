@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"os"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 type Config struct {
@@ -15,15 +13,35 @@ type Config struct {
 	Grow_mqtt  struct {
 		Username string
 		Password string
-		Enabled bool
-		Server  string
-		Sensors []struct {
+		Enabled  bool
+		Server   string
+		Sensors  []struct {
 			Name  string
 			Temp  string
 			Humid string
 		}
 	}
+	Default_Font_Size int
+	Layout            []LayoutElement
 }
+
+type LayoutElement struct {
+	Type           LayoutElementType
+	SwitchInterval int
+	Children       []LayoutElement
+}
+
+type LayoutElementType string
+
+const (
+	LayoutElementSwitch  = LayoutElementType("switch")
+	LayoutElementGrow    = LayoutElementType("grow")
+	LayoutElementBus     = LayoutElementType("bus")
+	LayoutElementWeather = LayoutElementType("weather")
+	LayoutElementKnife   = LayoutElementType("knife")
+	LayoutElementClock   = LayoutElementType("clock")
+	LayoutElementCrypto  = LayoutElementType("crypto")
+)
 
 func loadConfig() {
 	configPath := "config.json"
@@ -55,5 +73,15 @@ func loadConfig() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	spew.Dump(config)
+
+	// Apply default
+	if config.Width == 0 {
+		config.Width = 800
+	}
+	if config.Height == 0 {
+		config.Height = 600
+	}
+	if config.Default_Font_Size == 0 {
+		config.Default_Font_Size = 72
+	}
 }
