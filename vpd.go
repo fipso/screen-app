@@ -78,15 +78,15 @@ func (v *VPDChart) drawVPDZones() {
 			var c color.RGBA
 			switch {
 			case vpd < 0.6:
-				c = color.RGBA{0, 0, 128, 100}
+				c = color.RGBA{0, 0, 255, 100} // Blue
 			case vpd < 1.0:
-				c = color.RGBA{0, 128, 255, 100}
+				c = color.RGBA{0, 191, 255, 100} // Deep Sky Blue
 			case vpd < 1.4:
-				c = color.RGBA{0, 200, 0, 100}
+				c = color.RGBA{50, 205, 50, 100} // Lime Green
 			case vpd < 1.8:
-				c = color.RGBA{255, 255, 0, 100}
+				c = color.RGBA{255, 215, 0, 100} // Gold
 			default:
-				c = color.RGBA{255, 0, 0, 100}
+				c = color.RGBA{255, 0, 0, 100} // Red
 			}
 
 			// Draw a single pixel with alpha blending

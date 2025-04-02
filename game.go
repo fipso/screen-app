@@ -163,6 +163,7 @@ func runGameUI() {
 		}
 	}()
 
+	fontHeight = config.Default_Font_Size
 	//Load font
 	defaultFont = loadFont("assets/fonts/MajorMonoDisplay-Regular.ttf", float64(config.Default_Font_Size))
 	weatherFont = loadFont("assets/fonts/weathericons-regular-webfont.ttf", 260)

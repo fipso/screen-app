@@ -394,7 +394,7 @@ func (ui *GrowUi) Draw() *ebiten.Image {
 			),
 			defaultFont,
 			0,
-			800+(i*200),
+			800+(i*(fontHeight*3)+linePadding),
 			textColor,
 		)
 	}
