@@ -35,12 +35,19 @@ func (ui *GrowUi) messagePubHandler(client mqtt.Client, msg mqtt.Message) {
 		if msg.Topic() == sensor.Temp {
 			ui.sensorData[i].tempLast = v
 			ui.sensorData[i].tempHistory[time.Now()] = v
+			ui.vpdChart.Update(i, ui.sensorData[i].tempLast, ui.sensorData[i].humidLast)
 		}
 		if msg.Topic() == sensor.Humid {
 			ui.sensorData[i].humidLast = v
 			ui.sensorData[i].humidHistory[time.Now()] = v
+			ui.vpdChart.Update(i, ui.sensorData[i].tempLast, ui.sensorData[i].humidLast)
 		}
-		ui.vpdChart.Update(i, ui.sensorData[i].tempLast, ui.sensorData[i].humidLast)
+	}
+
+	if weatherCurrentData != nil {
+		// Update virtual outdoor sensor
+		lastIndex := len(ui.sensorData) // No -1 because we added the virtual sensor
+		ui.vpdChart.Update(lastIndex, weatherCurrentData.Weather.Temperature, weatherCurrentData.Weather.RelativeHumidity)
 	}
 
 	//ui.vpdChart.SetCurrentValues()
@@ -320,6 +327,8 @@ func (ui *GrowUi) Init() {
 			humidHistory: make(map[time.Time]float64),
 		})
 	}
+	// Init virtual outdoor sensor
+	sensorNames = append(sensorNames, "Outdoor")
 
 	ui.vpdChart = NewVPDChart(width-80, 600, sensorNames)
 
