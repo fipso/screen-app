@@ -46,6 +46,7 @@ func main() {
 	go pollPollen()
 	go pollWeather()
 	go pollKnifeAttacks()
+	go pollEnergyDevices()
 
 	loadConfig()
 	runGameUI()

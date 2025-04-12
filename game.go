@@ -95,6 +95,8 @@ func parseUiElement(configElem LayoutElement) *UiElement {
 		element = &ClockUi{}
 	case LayoutElementCrypto:
 		element = &CryptoUi{}
+	case LayoutElementEnergy:
+		element = &EnergyUi{}
 	default:
 		log.Fatalf("CONFIG | Unknown layout element type: %s", configElem.Type)
 	}

@@ -21,8 +21,14 @@ type Config struct {
 			Humid string
 		}
 	}
-	Default_Font_Size int
-	Layout            []LayoutElement
+	Default_Font_Size     int
+	Layout                []LayoutElement
+	Refoss_Key            string
+	Refoss_Energy_Devices []struct {
+		Name    string
+		Address string
+		UUID    string
+	}
 }
 
 type LayoutElement struct {
@@ -41,6 +47,7 @@ const (
 	LayoutElementKnife   = LayoutElementType("knife")
 	LayoutElementClock   = LayoutElementType("clock")
 	LayoutElementCrypto  = LayoutElementType("crypto")
+	LayoutElementEnergy  = LayoutElementType("energy")
 )
 
 func loadConfig() {
