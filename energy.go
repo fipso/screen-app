@@ -130,7 +130,6 @@ func (ui *EnergyUi) pollDeviceStates() {
 				err := s.fetchState()
 				if err != nil {
 					log.Println("Error polling refoss device:", s.deviceConfig.Address, err)
-					return
 				}
 				time.Sleep(time.Second)
 			}
