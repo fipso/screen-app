@@ -21,14 +21,19 @@ type Config struct {
 			Humid string
 		}
 	}
-	Default_Font_Size     int
-	Layout                []LayoutElement
-	Refoss_Key            string
-	Refoss_Energy_Devices []struct {
-		Name    string
-		Address string
-		UUID    string
+	Default_Font_Size int
+	Layout            []LayoutElement
+	Energy            struct {
+		Profiles map[string]string
+		Devices  []RefossEnergyDeviceConfig
 	}
+}
+
+type RefossEnergyDeviceConfig struct {
+	Name    string
+	Address string
+	UUID    string
+	Profile string
 }
 
 type LayoutElement struct {
