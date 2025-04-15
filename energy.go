@@ -5,15 +5,18 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"image/png"
 	"io"
 	"log"
 	"math/rand"
 	"net/http"
-	"strings"
+	"sync"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
+	"github.com/wcharczuk/go-chart/v2"
+	"github.com/wcharczuk/go-chart/v2/drawing"
 )
 
 type RefossDeviceConfigHeader struct {
@@ -57,48 +60,90 @@ type RefossDeviceConfigResponse struct {
 	} `json:"payload"`
 }
 
-var energyUsage map[string]int
-
-func init() {
-	energyUsage = make(map[string]int)
-}
-
 type EnergyUi struct {
 	screen *ebiten.Image
+
+	deviceStates []*EnergySensorState
+	chartImage   *ebiten.Image
+}
+
+type EnergySensorState struct {
+	lock         sync.Mutex
+	deviceConfig RefossEnergyDeviceConfig
+	timestamps   []time.Time
+	values       []float64
 }
 
 func (ui *EnergyUi) Init() {
 	width, height := ui.Bounds()
 	ui.screen = ebiten.NewImage(width, height)
+	ui.chartImage = ebiten.NewImage(width, 600)
+
+	for _, device := range config.Energy.Devices {
+		ui.deviceStates = append(ui.deviceStates, &EnergySensorState{
+			deviceConfig: device,
+			timestamps:   []time.Time{},
+			values:       []float64{},
+		})
+	}
+
+	go ui.pollDeviceStates()
 }
 
 func (ui *EnergyUi) Bounds() (width, height int) {
-	return config.Width, fontHeight+(fontHeight+linePadding) * len(config.Refoss_Energy_Devices)
+	return config.Width, 1300
 }
 
 func (ui *EnergyUi) Draw() *ebiten.Image {
 	ui.screen.Fill(bgColor)
 
 	// Draw the energy usage for each device
-	for i, device := range config.Refoss_Energy_Devices {
-		usage := energyUsage[device.Address]
-		text.Draw(ui.screen, fmt.Sprintf("%s: %dW", strings.ToLower(device.Name), usage), defaultFont, 0, fontHeight+(linePadding+fontHeight)*i, textColor)
+	// for i, device := range config.Refoss_Energy_Devices {
+	// 	usage := energyUsage[device.Address]
+	// 	text.Draw(ui.screen, fmt.Sprintf("%s: %dW", strings.ToLower(device.Name), usage), defaultFont, 0, fontHeight+(linePadding+fontHeight)*i, textColor)
+	// }
+
+	text.Draw(ui.screen, "power", defaultFont, 0, 100, textColor)
+
+	pos := ebiten.GeoM{}
+	pos.Translate(0, 140)
+	ui.screen.DrawImage(ui.chartImage, &ebiten.DrawImageOptions{
+		GeoM: pos,
+	})
+
+	usage := 0.0
+	for _, device := range ui.deviceStates {
+		if len(device.values) == 0 {
+			continue
+		}
+		usage += device.values[len(device.values)-1]
 	}
+	text.Draw(ui.screen, fmt.Sprintf("total consooomtion:\n\n   %dW %.2f€/h", int(usage), usage/1000*0.35), defaultFont, 0, 1100, textColor)
 
 	return ui.screen
 }
 
-func pollEnergyDevices() {
-	for {
-		for _, device := range config.Refoss_Energy_Devices {
-			err := pollDevice(device.Address, device.UUID)
-			if err != nil {
-				log.Println("Error polling refoss device:", device.Address, err)
+func (ui *EnergyUi) pollDeviceStates() {
+	for _, device := range ui.deviceStates {
+		go func(s *EnergySensorState) {
+			for {
+				err := s.fetchState()
+				if err != nil {
+					log.Println("Error polling refoss device:", s.deviceConfig.Address, err)
+					return
+				}
+				time.Sleep(time.Second)
 			}
-		}
-
-		time.Sleep(10 * time.Second)
+		}(device)
 	}
+
+	// Update chart at 1 fps
+	go func() {
+		for {
+			time.Sleep(time.Second * 1)
+			ui.updateGraph()
+		}
+	}()
 }
 
 // generateRandomString creates a random string of specified length
@@ -138,24 +183,31 @@ func generateSign(messageId, key, timestamp string) string {
 	return md5Hash(messageId + key + timestamp)
 }
 
-func pollDevice(address, uuid string) error {
-	// Generate timestamp in seconds
-	timestamp := time.Now().Unix()
-
+func (e *EnergySensorState) fetchState() error {
 	// Generate message ID based on the Java implementation
 	messageId := generateMessageId()
 
+	timestamp := time.Now().Unix()
+
+	// Get key for profile
+	key, ok := config.Energy.Profiles[e.deviceConfig.Profile]
+	if !ok {
+		return fmt.Errorf("meross profile %s not found", e.deviceConfig.Profile)
+	}
+
 	// Generate sign based on the Java implementation
-	sign := generateSign(messageId, config.Refoss_Key, fmt.Sprintf("%d", timestamp))
+	sign := generateSign(messageId, key, fmt.Sprintf("%d", timestamp))
+
+	url := fmt.Sprintf("%s/config", e.deviceConfig.Address)
 
 	reqData := RefossDeviceConfigRequest{
 		Header: RefossDeviceConfigHeader{
 			Method:         "GET",
-			From:           fmt.Sprintf("%s/config", address),
+			From:           url,
 			MessageID:      messageId,
 			PayloadVersion: 1,
 			Namespace:      "Appliance.Control.Electricity",
-			UUID:           uuid,
+			UUID:           e.deviceConfig.UUID,
 			Sign:           sign,
 			TriggerSrc:     "GoClient",
 			Timestamp:      int(timestamp),
@@ -170,7 +222,7 @@ func pollDevice(address, uuid string) error {
 	}
 	reqDataJson, err := json.Marshal(reqData)
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/config", address), bytes.NewReader(reqDataJson))
+	req, err := http.NewRequest("POST", url, bytes.NewReader(reqDataJson))
 	if err != nil {
 		return err
 	}
@@ -195,7 +247,106 @@ func pollDevice(address, uuid string) error {
 		return err
 	}
 
-	energyUsage[address] = resData.Payload.Electricity.Power / 1000
+	e.lock.Lock()
+	e.values = append(e.values, float64(resData.Payload.Electricity.Power)/1000)
+	e.timestamps = append(e.timestamps, time.Now())
+	e.lock.Unlock()
 
 	return nil
+}
+
+func (ui *EnergyUi) newGraph() *chart.Chart {
+	// Find highest power usage
+	highest := 0.0
+	for _, device := range ui.deviceStates {
+		if len(device.values) == 0 {
+			continue
+		}
+		v := device.values[len(device.values)-1]
+		if v > highest {
+			highest = v
+		}
+	}
+
+	fill := drawing.Color{R: bgColor.R, G: bgColor.G, B: bgColor.B, A: bgColor.A}
+	font := drawing.Color{R: textColor.R, G: textColor.G, B: textColor.B, A: textColor.A}
+	width, _ := ui.Bounds()
+	graph := chart.Chart{
+		DPI: 100,
+		Background: chart.Style{
+			FillColor: chart.ColorTransparent,
+		},
+		Canvas: chart.Style{
+			FillColor: fill,
+		},
+		XAxis: chart.XAxis{
+			ValueFormatter: chart.TimeValueFormatterWithFormat("15:04"),
+		},
+		YAxis: chart.YAxis{
+			Style: chart.Style{
+				FontColor: font,
+			},
+			Range: &chart.ContinuousRange{
+				Max: float64(int(highest/100))*100.0 + 150,
+			},
+		},
+		Series: []chart.Series{},
+		Width:  width - 50,
+		Height: 800,
+	}
+
+	graph.Elements = append(graph.Elements, chart.LegendLeft(&graph, chart.Style{
+		FillColor:   fill,
+		FontColor:   font,
+		StrokeColor: font,
+		FontSize:    14,
+	}))
+
+	for _, device := range ui.deviceStates {
+		if len(device.values) == 0 {
+			continue
+		}
+
+		graph.Series = append(graph.Series, chart.TimeSeries{
+			Name:    device.deviceConfig.Name,
+			XValues: device.timestamps,
+			YValues: device.values,
+		})
+
+		/*
+		graph.Series = append(graph.Series, chart.AnnotationSeries{
+			Annotations: []chart.Value2{
+				{XValue: 600.0, YValue: 600.0, Label: "One"},
+				{XValue: 2.0, YValue: 2.0, Label: "Two"},
+				{XValue: 3.0, YValue: 3.0, Label: "Three"},
+				{XValue: 4.0, YValue: 4.0, Label: "Four"},
+				{XValue: 5.0, YValue: 5.0, Label: "Five"},
+			},
+			Style: chart.Style{
+				FillColor: chart.ColorWhite,
+			},
+		})*/
+	}
+
+	return &graph
+}
+
+func (ui *EnergyUi) updateGraph() {
+	graph := ui.newGraph()
+
+	buffer := bytes.NewBuffer([]byte{})
+	err := graph.Render(chart.PNG, buffer)
+	if err != nil {
+		log.Println("Could not render graph")
+		log.Println(err)
+		return
+	}
+
+	img, err := png.Decode(buffer)
+	if err != nil {
+		log.Println("Could not decode graph png")
+		return
+	}
+
+	ui.chartImage = ebiten.NewImageFromImage(img)
 }

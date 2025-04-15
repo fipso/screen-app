@@ -1,32 +1,66 @@
 {
-  "refoss_key": "8ae8769a7d945f8ac866589371b4564e",
-  "refoss_energy_devices": [
-    {
-      "name": "Big Box",
-      "address": "http://192.168.178.83",
-      "uuid": "23080400422132510d0448e1e9d4e381"
+  "energy": {
+    "profiles": {
+      "meross1": "5cf2f60f105b3a292a8ebb64a79dee93",
+      "refoss1": "8ae8769a7d945f8ac866589371b4564e"
     },
-    {
-      "name": "Kitchen Sink Heater",
-      "address": "http://192.168.178.84",
-      "uuid": "23080452847111510d0448e1e9d4e5c7"
-    },
-    {
-      "name": "PC",
-      "address": "http://192.168.178.62",
-      "uuid": "23080402135087510d0448e1e9d4cd6a"
-    },
-    {
-      "name": "Small Box",
-      "address": "http://192.168.178.91",
-      "uuid": "23080428086183510d0448e1e9d4e345"
-    },
-    {
-      "name": "Rack",
-      "address": "http://192.168.178.74",
-      "uuid": "23080410562190510d0448e1e9d4dac6"
-    }
-  ],
+    "devices": [
+      {
+        "name": "Big Box",
+        "address": "http://192.168.178.83",
+        "uuid": "23080400422132510d0448e1e9d4e381",
+        "profile": "refoss1"
+      },
+      {
+        "name": "Kitchen Sink Heater",
+        "address": "http://192.168.178.84",
+        "uuid": "23080452847111510d0448e1e9d4e5c7",
+        "profile": "refoss1"
+      },
+      {
+        "name": "PC",
+        "address": "http://192.168.178.62",
+        "uuid": "23080402135087510d0448e1e9d4cd6a",
+        "profile": "refoss1"
+      },
+      {
+        "name": "Small Box",
+        "address": "http://192.168.178.91",
+        "uuid": "23080428086183510d0448e1e9d4e345",
+        "profile": "refoss1"
+      },
+      {
+        "name": "Rack",
+        "address": "http://192.168.178.74",
+        "uuid": "23080410562190510d0448e1e9d4dac6",
+        "profile": "refoss1"
+      },
+      {
+        "name": "Smart Screen",
+        "address": "http://192.168.178.108",
+        "uuid": "24093082407560510d05c4e7ae0bfa20",
+        "profile": "meross1"
+      },
+      {
+        "name": "Kühlschrank",
+        "address": "http://192.168.178.113",
+        "uuid": "24093044596861510d05c4e7ae0c085a",
+        "profile": "meross1"
+      },
+      {
+        "name": "TV Stuff + Router",
+        "address": "http://192.168.178.112",
+        "uuid": "24093018748822510d05c4e7ae0bf297",
+        "profile": "meross1"
+      },
+      {
+        "name": "Workbench + Room Vent",
+        "address": "http://192.168.178.110",
+        "uuid": "24093088062840510d05c4e7ae0c00cb",
+        "profile": "meross1"
+      }
+    ]
+  },
   "fullscreen": false,
   "width": 1080,
   "height": 1920,
@@ -50,9 +84,6 @@
   },
   "layout": [
     {
-      "type": "energy"
-    },
-    {
       "type": "clock"
     },
     {
@@ -61,6 +92,9 @@
       "children": [
         {
           "type": "crypto"
+        },
+        {
+          "type": "energy"
         },
         {
           "type": "grow"
