@@ -10,7 +10,6 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -68,7 +67,6 @@ type EnergyUi struct {
 }
 
 type EnergySensorState struct {
-	lock         sync.Mutex
 	deviceConfig RefossEnergyDeviceConfig
 	timestamps   []time.Time
 	values       []float64
@@ -136,10 +134,10 @@ func (ui *EnergyUi) pollDeviceStates() {
 		}(device)
 	}
 
-	// Update chart at 1 fps
+	// Update chart at 2 fps
 	go func() {
 		for {
-			time.Sleep(time.Second * 1)
+			time.Sleep(time.Millisecond * 500)
 			ui.updateGraph()
 		}
 	}()
@@ -246,10 +244,8 @@ func (e *EnergySensorState) fetchState() error {
 		return err
 	}
 
-	e.lock.Lock()
 	e.values = append(e.values, float64(resData.Payload.Electricity.Power)/1000)
 	e.timestamps = append(e.timestamps, time.Now())
-	e.lock.Unlock()
 
 	return nil
 }
@@ -286,7 +282,8 @@ func (ui *EnergyUi) newGraph() *chart.Chart {
 				FontColor: font,
 			},
 			Range: &chart.ContinuousRange{
-				Max: float64(int(highest/100))*100.0 + 150,
+				//Max: float64(int(highest/100))*100.0 + 150,
+				Max: 1100,
 			},
 		},
 		Series: []chart.Series{},
@@ -310,6 +307,9 @@ func (ui *EnergyUi) newGraph() *chart.Chart {
 			Name:    device.deviceConfig.Name,
 			XValues: device.timestamps,
 			YValues: device.values,
+			Style: chart.Style{
+				StrokeWidth: 1.4,
+			},
 		})
 
 		/*

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"log"
 	"os"
@@ -10,9 +11,10 @@ import (
 var config Config
 
 func main() {
-	// CPU profiling flag
+	// cli flags
+	cliLayout := flag.String("layout", "", "override config layout from cli")
+	// profiling flags
 	cpuProfile := flag.String("cpuprofile", "", "write cpu profile to file")
-	// Memory profiling flag
 	memProfile := flag.String("memprofile", "", "write memory profile to file")
 	flag.Parse()
 
@@ -48,6 +50,14 @@ func main() {
 	go pollKnifeAttacks()
 
 	loadConfig()
+	// Override layout from cli if provided
+	if *cliLayout != "" {
+		err := json.Unmarshal([]byte(*cliLayout), &config.Layout)
+		if err != nil {
+			log.Fatal("could not parse layout from cli: ", err)
+		}
+	}
+
 	runGameUI()
 
 }
