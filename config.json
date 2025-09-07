@@ -6,12 +6,6 @@
     },
     "devices": [
       {
-        "name": "Big Box",
-        "address": "http://192.168.178.83",
-        "uuid": "23080400422132510d0448e1e9d4e381",
-        "profile": "refoss1"
-      },
-      {
         "name": "Kitchen Sink Heater",
         "address": "http://192.168.178.84",
         "uuid": "23080452847111510d0448e1e9d4e5c7",
@@ -20,13 +14,8 @@
       {
         "name": "PC",
         "address": "http://192.168.178.62",
+        "mac": "48:e1:e9:d4:cd:6a",
         "uuid": "23080402135087510d0448e1e9d4cd6a",
-        "profile": "refoss1"
-      },
-      {
-        "name": "Small Box",
-        "address": "http://192.168.178.91",
-        "uuid": "23080428086183510d0448e1e9d4e345",
         "profile": "refoss1"
       },
       {
@@ -38,25 +27,22 @@
       {
         "name": "Smart Screen",
         "address": "http://192.168.178.108",
+        "mac": "c4:e7:ae:0b:fa:20",
         "uuid": "24093082407560510d05c4e7ae0bfa20",
         "profile": "meross1"
       },
       {
         "name": "Kühlschrank",
         "address": "http://192.168.178.113",
+        "mac": "c4:e7:ae:0c:08:5a",
         "uuid": "24093044596861510d05c4e7ae0c085a",
         "profile": "meross1"
       },
       {
         "name": "TV Stuff + Router",
         "address": "http://192.168.178.112",
+        "mac": "c4:e7:ae:0b:f2:97",
         "uuid": "24093018748822510d05c4e7ae0bf297",
-        "profile": "meross1"
-      },
-      {
-        "name": "Workbench + Room Vent",
-        "address": "http://192.168.178.110",
-        "uuid": "24093088062840510d05c4e7ae0c00cb",
         "profile": "meross1"
       }
     ]
