@@ -218,6 +218,9 @@ func (e *EnergySensorState) fetchState() error {
 		},
 	}
 	reqDataJson, err := json.Marshal(reqData)
+	if err != nil {
+		return err
+	}
 
 	req, err := http.NewRequest("POST", url, bytes.NewReader(reqDataJson))
 	if err != nil {
@@ -243,6 +246,9 @@ func (e *EnergySensorState) fetchState() error {
 	if err != nil {
 		return err
 	}
+
+	// log.Println(e.deviceConfig.Address)
+	// spew.Dump(resData.Payload.Electricity.Power/1000)
 
 	e.values = append(e.values, float64(resData.Payload.Electricity.Power)/1000)
 	e.timestamps = append(e.timestamps, time.Now())
