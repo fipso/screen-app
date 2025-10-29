@@ -57,14 +57,9 @@
     "server": "192.168.178.102:1883",
     "sensors": [
       {
-        "name": "Big Box",
-        "temp": "bigbox/sensor/grow_box_temperature/state",
-        "humid": "bigbox/sensor/grow_box_humidity/state"
-      },
-      {
-        "name": "Small Box",
-        "temp": "growroom/sensor/grow_box_temperature/state",
-        "humid": "growroom/sensor/grow_box_humidity/state"
+        "name": "Hobbyraum",
+        "temp": "tinybox/sensor/box_temperature/state",
+        "humid": "tinybox/sensor/box_humidity/state"
       }
     ]
   },
