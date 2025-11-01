@@ -24,8 +24,9 @@ type Config struct {
 	Default_Font_Size int
 	Layout            []LayoutElement
 	Energy            struct {
-		Profiles map[string]string
-		Devices  []RefossEnergyDeviceConfig
+		MaxHistoryHours int
+		Profiles        map[string]string
+		Devices         []RefossEnergyDeviceConfig
 	}
 }
 
@@ -69,7 +70,7 @@ func loadConfig() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		err = os.WriteFile(configPath, configB, 0644)
+		err = os.WriteFile(configPath, configB, 0o644)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -95,5 +96,8 @@ func loadConfig() {
 	}
 	if config.Default_Font_Size == 0 {
 		config.Default_Font_Size = 72
+	}
+	if config.Energy.MaxHistoryHours == 0 {
+		config.Energy.MaxHistoryHours = 6
 	}
 }
