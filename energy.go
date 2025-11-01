@@ -250,8 +250,17 @@ func (e *EnergySensorState) fetchState() error {
 	// log.Println(e.deviceConfig.Address)
 	// spew.Dump(resData.Payload.Electricity.Power/1000)
 
+	now := time.Now()
 	e.values = append(e.values, float64(resData.Payload.Electricity.Power)/1000)
-	e.timestamps = append(e.timestamps, time.Now())
+	e.timestamps = append(e.timestamps, now)
+
+	// Get history length
+	diff := now.Sub(e.timestamps[0])
+	if diff > time.Hour*time.Duration(config.Energy.MaxHistoryHours) {
+		// Drop oldest value
+		e.values = e.values[1:]
+		e.timestamps = e.timestamps[1:]
+	}
 
 	return nil
 }
@@ -288,7 +297,7 @@ func (ui *EnergyUi) newGraph() *chart.Chart {
 				FontColor: font,
 			},
 			Range: &chart.ContinuousRange{
-				//Max: float64(int(highest/100))*100.0 + 150,
+				// Max: float64(int(highest/100))*100.0 + 150,
 				Max: 1100,
 			},
 		},
@@ -319,18 +328,18 @@ func (ui *EnergyUi) newGraph() *chart.Chart {
 		})
 
 		/*
-		graph.Series = append(graph.Series, chart.AnnotationSeries{
-			Annotations: []chart.Value2{
-				{XValue: 600.0, YValue: 600.0, Label: "One"},
-				{XValue: 2.0, YValue: 2.0, Label: "Two"},
-				{XValue: 3.0, YValue: 3.0, Label: "Three"},
-				{XValue: 4.0, YValue: 4.0, Label: "Four"},
-				{XValue: 5.0, YValue: 5.0, Label: "Five"},
-			},
-			Style: chart.Style{
-				FillColor: chart.ColorWhite,
-			},
-		})*/
+			graph.Series = append(graph.Series, chart.AnnotationSeries{
+				Annotations: []chart.Value2{
+					{XValue: 600.0, YValue: 600.0, Label: "One"},
+					{XValue: 2.0, YValue: 2.0, Label: "Two"},
+					{XValue: 3.0, YValue: 3.0, Label: "Three"},
+					{XValue: 4.0, YValue: 4.0, Label: "Four"},
+					{XValue: 5.0, YValue: 5.0, Label: "Five"},
+				},
+				Style: chart.Style{
+					FillColor: chart.ColorWhite,
+				},
+			})*/
 	}
 
 	return &graph

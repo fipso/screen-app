@@ -29,8 +29,10 @@ type CryptoUi struct {
 	screen *ebiten.Image
 }
 
-var pairs []*CurrencyPair
-var symbols = []string{"BTC", "ETH", "SOL", "XRP", "APE", "RAY", "IOTA", "PEPE", "SHIB", "DOGE", "APT", "ADA", "BNB", "Link", "EUR"}
+var (
+	pairs   []*CurrencyPair
+	symbols = []string{"BTC", "ETH", "SOL", "XRP", "APE", "RAY", "IOTA", "PEPE", "SHIB", "DOGE", "APT", "ADA", "BNB", "Link", "EUR"}
+)
 
 func pollBinance() {
 	// default usdt pairs
@@ -66,28 +68,30 @@ func sortedCurrencyPairs() []*CurrencyPair {
 }
 
 func watchCurrency(pair *CurrencyPair) {
-	wsKlineHandler := func(event *binance.WsKlineEvent) {
-		var err error
-		pair.price, err = strconv.ParseFloat(event.Kline.Close, 64)
-		pair.history = append(pair.history, *event)
-		if err != nil {
-			fmt.Println(err)
+	for {
+		wsKlineHandler := func(event *binance.WsKlineEvent) {
+			var err error
+			pair.price, err = strconv.ParseFloat(event.Kline.Close, 64)
+			pair.history = append(pair.history, *event)
+			if err != nil {
+				fmt.Println(err)
+			}
 		}
+		doneC, _, err := binance.WsKlineServe(
+			fmt.Sprintf("%s%s", pair.symbol1, pair.symbol2),
+			"1m",
+			wsKlineHandler,
+			func(err error) {
+				fmt.Println(err)
+			},
+		)
+		if err != nil {
+			fmt.Println("[BINANCE WS]", err)
+			time.Sleep(time.Second * 5)
+			continue
+		}
+		<-doneC
 	}
-	errHandler := func(err error) {
-		fmt.Println(err)
-	}
-	doneC, _, err := binance.WsKlineServe(
-		fmt.Sprintf("%s%s", pair.symbol1, pair.symbol2),
-		"1m",
-		wsKlineHandler,
-		errHandler,
-	)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	<-doneC
 }
 
 func calcDelta(pair *CurrencyPair, span time.Duration) float64 {
