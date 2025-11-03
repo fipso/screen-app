@@ -17,7 +17,7 @@ func (ui *ModalUi) Init() {
 	width, height := ui.Bounds()
 	ui.screen = ebiten.NewImage(width, height)
 
-	ui.contentScreen = ebiten.NewImage(width, 400)
+	ui.contentScreen = ebiten.NewImage(width-paddingX*2, 400)
 
 	for _, elem := range ui.stackLayout {
 		elem.Init()

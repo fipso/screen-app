@@ -176,7 +176,7 @@ func runGameUI() {
 	game.currentModal = &ModalUi{
 		stackLayout: []UiElement{
 			&AlertUi{
-				msg: "This is a test alert message!",
+				msg: "  faggot on the\n     doooooor",
 			},
 		},
 	}
@@ -204,7 +204,7 @@ func runGameUI() {
 	clockFont = loadFont("assets/fonts/technology.bold.ttf", 100)
 	tinyFont = loadFont("assets/fonts/OpenSans-Regular.ttf", 32)
 	smallFont = loadFont("assets/fonts/OpenSans-Regular.ttf", 48)
-	faFont = loadFont("assets/fonts/fa400.otf", 48)
+	faFont = loadFont("assets/fonts/fa400.otf", 48*2)
 
 	ebiten.SetWindowSize(config.Width, config.Height)
 	ebiten.SetWindowTitle("screen-app ")

@@ -18,7 +18,7 @@ func (ui *AlertUi) Init() {
 }
 
 func (ui *AlertUi) Bounds() (width, height int) {
-	return config.Width - paddingX, 200
+	return config.Width - paddingX*2, 400
 }
 
 func (ui *AlertUi) Draw() *ebiten.Image {
@@ -28,10 +28,8 @@ func (ui *AlertUi) Draw() *ebiten.Image {
 	r, b, g, _ := bgColor.RGBA()
 	ui.screen.Fill(color.RGBA{uint8(r), uint8(g), uint8(b), 220})
 
-	// Draw rectangle border
-
-	text.Draw(ui.screen, string(""), faFont, w/2, 50, textColor)
-	text.Draw(ui.screen, ui.msg, defaultFont, 0, 150, textColor)
+	text.Draw(ui.screen, string(""), faFont, w/2-48*2, 48*2, textColor)
+	text.Draw(ui.screen, ui.msg, defaultFont, 0, 200, textColor)
 
 	return ui.screen
 }
