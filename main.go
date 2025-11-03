@@ -8,7 +8,11 @@ import (
 	"runtime/pprof"
 )
 
-var config Config
+var (
+	game        *Game
+	config      Config
+	mqttService MqttService
+)
 
 func main() {
 	// cli flags
@@ -43,13 +47,20 @@ func main() {
 		}
 	}
 
+	loadConfig()
+
+	mqttService = MqttService{}
+	go mqttService.Run()
+
+	doorService := DoorService{}
+	go doorService.Run()
+
 	go pollBinance()
 	go pollBusTimes()
 	go pollPollen()
 	go pollWeather()
 	go pollKnifeAttacks()
 
-	loadConfig()
 	// Override layout from cli if provided
 	if *cliLayout != "" {
 		err := json.Unmarshal([]byte(*cliLayout), &config.Layout)
@@ -59,5 +70,4 @@ func main() {
 	}
 
 	runGameUI()
-
 }
