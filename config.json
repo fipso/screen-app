@@ -1,5 +1,6 @@
 {
   "energy": {
+    "maxHistoryHours": 6,
     "profiles": {
       "meross1": "5cf2f60f105b3a292a8ebb64a79dee93",
       "refoss1": "8ae8769a7d945f8ac866589371b4564e"
@@ -76,12 +77,6 @@
         },
         {
           "type": "energy"
-        },
-        {
-          "type": "grow"
-        },
-        {
-          "type": "knife"
         }
       ]
     },
