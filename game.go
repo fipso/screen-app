@@ -19,26 +19,35 @@ type UiElement interface {
 }
 
 // Ebiten units
-//const config.Width = 360 / 2
-//const config.Height = 640 / 2
+// const config.Width = 360 / 2
+// const config.Height = 640 / 2
+var (
+	fontHeight = 72
+	fontWidth  = 60
+)
 
-var fontHeight = 72
-var fontWidth = 60
+var (
+	defaultFont font.Face = basicfont.Face7x13
+	weatherFont font.Face = basicfont.Face7x13
+	clockFont   font.Face = basicfont.Face7x13
+	tinyFont    font.Face = basicfont.Face7x13
+	smallFont   font.Face = basicfont.Face7x13
+	faFont      font.Face = basicfont.Face7x13
+)
 
-var defaultFont font.Face = basicfont.Face7x13
-var weatherFont font.Face = basicfont.Face7x13
-var clockFont font.Face = basicfont.Face7x13
-var tinyFont font.Face = basicfont.Face7x13
-var smallFont font.Face = basicfont.Face7x13
+var (
+	textColor = color.RGBA{255, 255, 255, 255}
+	bgColor   = color.RGBA{0, 0, 0, 255}
+)
 
-var textColor = color.RGBA{255, 255, 255, 255}
-var bgColor = color.RGBA{0, 0, 0, 255}
-
-var linePadding = 5
-var paddingX = 40
+var (
+	linePadding = 5
+	paddingX    = 40
+)
 
 type Game struct {
-	stackLayout []UiElement
+	stackLayout  []UiElement
+	currentModal UiElement
 }
 
 func (g *Game) Update() error {
@@ -48,12 +57,24 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(bgColor)
 
+	// Draw content
+	drawStackLayout(screen, g.stackLayout)
+
+	// Draw modal if any
+	if g.currentModal != nil {
+		modalOverlay := g.currentModal.Draw()
+		// Draw ontop of existing screen (with alpha transparency)
+		screen.DrawImage(modalOverlay, &ebiten.DrawImageOptions{})
+	}
+}
+
+func drawStackLayout(target *ebiten.Image, elements []UiElement) {
 	// Draw UI elements
 	pos := ebiten.GeoM{}
 	pos.Translate(float64(paddingX), 0)
-	for _, ui := range g.stackLayout {
+	for _, ui := range elements {
 		img := ui.Draw()
-		screen.DrawImage(img, &ebiten.DrawImageOptions{
+		target.DrawImage(img, &ebiten.DrawImageOptions{
 			GeoM: pos,
 		})
 
@@ -63,11 +84,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-
-	//s := ebiten.DeviceScaleFactor()
-	//return int(float64(outsideWidth) * s), int(float64(outsideHeight) * s)
+	// s := ebiten.DeviceScaleFactor()
+	// return int(float64(outsideWidth) * s), int(float64(outsideHeight) * s)
 	return config.Width, config.Height
-	//return 1080, 1920
+	// return 1080, 1920
 }
 
 func parseUiElement(configElem LayoutElement) *UiElement {
@@ -150,10 +170,22 @@ func runGameUI() {
 		ui.Init()
 	}
 
+	// DEBUG:!!!
+	// Spawn test modal
+
+	game.currentModal = &ModalUi{
+		stackLayout: []UiElement{
+			&AlertUi{
+				msg: "This is a test alert message!",
+			},
+		},
+	}
+	game.currentModal.Init()
+
 	// Dark/Light mode
 	go func() {
 		for {
-			if time.Now().Hour() > 18 || time.Now().Hour() < 6 {
+			if time.Now().Hour() > 17 || time.Now().Hour() < 8 {
 				textColor = color.RGBA{255, 255, 255, 255}
 				bgColor = color.RGBA{0, 0, 0, 255}
 			} else {
@@ -166,15 +198,16 @@ func runGameUI() {
 	}()
 
 	fontHeight = config.Default_Font_Size
-	//Load font
+	// Load font
 	defaultFont = loadFont("assets/fonts/MajorMonoDisplay-Regular.ttf", float64(config.Default_Font_Size))
 	weatherFont = loadFont("assets/fonts/weathericons-regular-webfont.ttf", 260)
 	clockFont = loadFont("assets/fonts/technology.bold.ttf", 100)
 	tinyFont = loadFont("assets/fonts/OpenSans-Regular.ttf", 32)
 	smallFont = loadFont("assets/fonts/OpenSans-Regular.ttf", 48)
+	faFont = loadFont("assets/fonts/fa400.otf", 48)
 
 	ebiten.SetWindowSize(config.Width, config.Height)
-	ebiten.SetWindowTitle("Screep App Game UI")
+	ebiten.SetWindowTitle("screen-app ")
 	ebiten.SetFullscreen(config.Fullscreen)
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
