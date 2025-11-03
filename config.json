@@ -51,11 +51,13 @@
   "fullscreen": false,
   "width": 1080,
   "height": 1920,
-  "grow_mqtt": {
+  "mqtt": {
     "username": "fipso",
     "password": "spider889",
     "enabled": true,
-    "server": "192.168.178.102:1883",
+    "server": "192.168.178.102:1883"
+  },
+  "grow": {
     "sensors": [
       {
         "name": "Hobbyraum",
@@ -76,7 +78,13 @@
           "type": "crypto"
         },
         {
+          "type": "grow"
+        },
+        {
           "type": "energy"
+        },
+        {
+          "type": "knife"
         }
       ]
     },

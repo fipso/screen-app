@@ -125,7 +125,7 @@ func parseUiElement(configElem LayoutElement) *UiElement {
 }
 
 func runGameUI() {
-	game := &Game{}
+	game = &Game{}
 
 	// Build UI Layout from config
 	for _, layoutElement := range config.Layout {
@@ -172,15 +172,6 @@ func runGameUI() {
 
 	// DEBUG:!!!
 	// Spawn test modal
-
-	game.currentModal = &ModalUi{
-		stackLayout: []UiElement{
-			&AlertUi{
-				msg: "  faggot on the\n     doooooor",
-			},
-		},
-	}
-	game.currentModal.Init()
 
 	// Dark/Light mode
 	go func() {

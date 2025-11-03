@@ -298,7 +298,7 @@ func (ui *EnergyUi) newGraph() *chart.Chart {
 			},
 			Range: &chart.ContinuousRange{
 				// Max: float64(int(highest/100))*100.0 + 150,
-				Max: 1100,
+				Max: 800,
 			},
 		},
 		Series: []chart.Series{},

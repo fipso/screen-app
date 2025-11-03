@@ -10,12 +10,14 @@ type Config struct {
 	Fullscreen bool
 	Width      int
 	Height     int
-	Grow_mqtt  struct {
+	Mqtt       struct {
 		Username string
 		Password string
 		Enabled  bool
 		Server   string
-		Sensors  []struct {
+	}
+	Grow struct {
+		Sensors []struct {
 			Name  string
 			Temp  string
 			Humid string

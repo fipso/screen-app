@@ -27,7 +27,7 @@ type SensorData struct {
 }
 
 func (ui *GrowUi) messagePubHandler(client mqtt.Client, msg mqtt.Message) {
-	for i, sensor := range config.Grow_mqtt.Sensors {
+	for i, sensor := range config.Grow.Sensors {
 		v, err := parseValue(msg)
 		if err != nil {
 			log.Println("Could not parse MQTT message", v)
@@ -47,17 +47,20 @@ func (ui *GrowUi) messagePubHandler(client mqtt.Client, msg mqtt.Message) {
 	if weatherCurrentData != nil {
 		// Update virtual outdoor sensor
 		lastIndex := len(ui.sensorData) // No -1 because we added the virtual sensor
-		ui.vpdChart.Update(lastIndex, weatherCurrentData.Weather.Temperature, weatherCurrentData.Weather.RelativeHumidity)
+		ui.vpdChart.Update(
+			lastIndex,
+			weatherCurrentData.Weather.Temperature,
+			weatherCurrentData.Weather.RelativeHumidity,
+		)
 	}
 
-	//ui.vpdChart.SetCurrentValues()
+	// ui.vpdChart.SetCurrentValues()
 
 	// Redraw the graph
 	// ui.tempGraph = ui.buildTempGraph()
 	// ui.vpdGraph = ui.buildVpdGraph()
 	// ui.tempGraphImage = ui.renderGraph(ui.tempGraph)
 	// ui.vpdGraphImage = ui.renderGraph(ui.vpdGraph)
-
 }
 
 func parseValue(msg mqtt.Message) (float64, error) {
@@ -318,7 +321,7 @@ func (ui *GrowUi) Init() {
 	ui.screen = ebiten.NewImage(width, height)
 
 	var sensorNames []string
-	for _, s := range config.Grow_mqtt.Sensors {
+	for _, s := range config.Grow.Sensors {
 		sensorNames = append(sensorNames, s.Name)
 		ui.sensorData = append(ui.sensorData, SensorData{
 			tempLast:     0,
@@ -332,30 +335,19 @@ func (ui *GrowUi) Init() {
 
 	ui.vpdChart = NewVPDChart(width-80, 600, sensorNames)
 
-	//ui.tempGraph = ui.buildTempGraph()
-	//ui.tempGraphImage = ui.renderGraph(ui.tempGraph)
-
-	// Connect to mqtt
-	opts := mqtt.NewClientOptions()
-	opts.AddBroker(fmt.Sprintf("tcp://%s", config.Grow_mqtt.Server))
-	opts.SetClientID(fmt.Sprintf("screen-app-%d", time.Now().Unix()))
-	opts.SetDefaultPublishHandler(ui.messagePubHandler)
-	opts.SetUsername(config.Grow_mqtt.Username)
-	opts.SetPassword(config.Grow_mqtt.Password)
-	client := mqtt.NewClient(opts)
-	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		log.Println(token.Error())
-		return
-	}
-	log.Println("Connected to MQTT")
-
-	for _, sensor := range config.Grow_mqtt.Sensors {
-		log.Println("Subscribing to", sensor.Temp, "and", sensor.Humid)
-		client.Subscribe(sensor.Temp, 0, nil)
-		client.Subscribe(sensor.Humid, 0, nil)
-	}
+	// ui.tempGraph = ui.buildTempGraph()
+	// ui.tempGraphImage = ui.renderGraph(ui.tempGraph)
 
 	log.Println("GrowUI Initialized")
+
+	go func() {
+		mqttService.WaitReady()
+		for _, sensor := range config.Grow.Sensors {
+			log.Println("[GrowUI] Subscribing to", sensor.Temp, "and", sensor.Humid)
+			mqttService.Client.Subscribe(sensor.Temp, 0, ui.messagePubHandler)
+			mqttService.Client.Subscribe(sensor.Humid, 0, ui.messagePubHandler)
+		}
+	}()
 }
 
 func (ui *GrowUi) Bounds() (width, height int) {
@@ -392,7 +384,7 @@ func (ui *GrowUi) Draw() *ebiten.Image {
 		GeoM: pos,
 	})
 
-	for i, sensor := range config.Grow_mqtt.Sensors {
+	for i, sensor := range config.Grow.Sensors {
 		text.Draw(
 			ui.screen,
 			fmt.Sprintf(
