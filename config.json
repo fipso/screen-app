@@ -7,9 +7,21 @@
     },
     "devices": [
       {
-        "name": "Kitchen Sink Heater",
+        "name": "Grow RDWC + Misc",
         "address": "http://192.168.178.84",
         "uuid": "23080452847111510d0448e1e9d4e5c7",
+        "profile": "refoss1",
+        "aggregate": [
+          {
+            "operation": "sub",
+            "device": "23080400422132510d0448e1e9d4e381"
+          }
+        ]
+      },
+      {
+        "name": "Grow Exhaust + Box Fan",
+        "address": "http://192.168.178.77",
+        "uuid": "23080412278367510d0448e1e9d4e8c6",
         "profile": "refoss1"
       },
       {
@@ -23,6 +35,12 @@
         "name": "Rack",
         "address": "http://192.168.178.74",
         "uuid": "23080410562190510d0448e1e9d4dac6",
+        "profile": "refoss1"
+      },
+      {
+        "name": "Grow LED",
+        "address": "http://192.168.178.83",
+        "uuid": "23080400422132510d0448e1e9d4e381",
         "profile": "refoss1"
       },
       {
@@ -75,16 +93,7 @@
       "switchInterval": 2000,
       "children": [
         {
-          "type": "crypto"
-        },
-        {
-          "type": "grow"
-        },
-        {
           "type": "energy"
-        },
-        {
-          "type": "knife"
         }
       ]
     },
