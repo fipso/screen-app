@@ -5,6 +5,8 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/draw"
 	"image/png"
 	"io"
 	"log"
@@ -64,27 +66,40 @@ type EnergyUi struct {
 
 	deviceStates []*EnergySensorState
 	chartImage   *ebiten.Image
+	graph        *chart.Chart
+	renderBuf    *bytes.Buffer
+	rgbaBuf      *image.RGBA
 }
 
 type EnergySensorState struct {
 	deviceConfig RefossEnergyDeviceConfig
 	timestamps   []time.Time
 	values       []float64
+	series       *chart.TimeSeries
 }
 
 func (ui *EnergyUi) Init() {
 	width, height := ui.Bounds()
 	ui.screen = ebiten.NewImage(width, height)
-	ui.chartImage = ebiten.NewImage(width, 600)
+	ui.chartImage = ebiten.NewImage(width-50, 800)
+	ui.renderBuf = bytes.NewBuffer(make([]byte, 0, 1024*1024))
+	ui.rgbaBuf = image.NewRGBA(image.Rect(0, 0, width-50, 800))
 
 	for _, device := range config.Energy.Devices {
 		ui.deviceStates = append(ui.deviceStates, &EnergySensorState{
 			deviceConfig: device,
 			timestamps:   []time.Time{},
 			values:       []float64{},
+			series: &chart.TimeSeries{
+				Name: device.Name,
+				Style: chart.Style{
+					StrokeWidth: 1.4,
+				},
+			},
 		})
 	}
 
+	ui.initGraph()
 	go ui.pollDeviceStates()
 }
 
@@ -111,12 +126,19 @@ func (ui *EnergyUi) Draw() *ebiten.Image {
 
 	usage := 0.0
 	for _, device := range ui.deviceStates {
-		if len(device.values) == 0 {
+		if len(device.series.YValues) == 0 {
 			continue
 		}
-		usage += device.values[len(device.values)-1]
+		usage += device.series.YValues[len(device.series.YValues)-1]
 	}
-	text.Draw(ui.screen, fmt.Sprintf("total consooomtion:\n\n   %dW %.2f€/h", int(usage), usage/1000*0.35), defaultFont, 0, 1100, textColor)
+	text.Draw(
+		ui.screen,
+		fmt.Sprintf("total consooomtion:\n\n   %dW %.2f€/h", int(usage), usage/1000*0.35),
+		defaultFont,
+		0,
+		1100,
+		textColor,
+	)
 
 	return ui.screen
 }
@@ -129,15 +151,15 @@ func (ui *EnergyUi) pollDeviceStates() {
 				if err != nil {
 					log.Println("Error polling refoss device:", s.deviceConfig.Address, err)
 				}
-				time.Sleep(time.Second)
+				time.Sleep(time.Millisecond*500)
 			}
 		}(device)
 	}
 
-	// Update chart at 2 fps
+	// Update chart
 	go func() {
 		for {
-			time.Sleep(time.Millisecond * 500)
+			time.Sleep(time.Millisecond*500)
 			ui.updateGraph()
 		}
 	}()
@@ -251,7 +273,8 @@ func (e *EnergySensorState) fetchState() error {
 	// spew.Dump(resData.Payload.Electricity.Power/1000)
 
 	now := time.Now()
-	e.values = append(e.values, float64(resData.Payload.Electricity.Power)/1000)
+	p := float64(resData.Payload.Electricity.Power) / 1000
+	e.values = append(e.values, p)
 	e.timestamps = append(e.timestamps, now)
 
 	// Get history length
@@ -265,23 +288,12 @@ func (e *EnergySensorState) fetchState() error {
 	return nil
 }
 
-func (ui *EnergyUi) newGraph() *chart.Chart {
-	// Find highest power usage
-	highest := 0.0
-	for _, device := range ui.deviceStates {
-		if len(device.values) == 0 {
-			continue
-		}
-		v := device.values[len(device.values)-1]
-		if v > highest {
-			highest = v
-		}
-	}
-
+func (ui *EnergyUi) initGraph() {
 	fill := drawing.Color{R: bgColor.R, G: bgColor.G, B: bgColor.B, A: bgColor.A}
 	font := drawing.Color{R: textColor.R, G: textColor.G, B: textColor.B, A: textColor.A}
 	width, _ := ui.Bounds()
-	graph := chart.Chart{
+
+	ui.graph = &chart.Chart{
 		DPI: 100,
 		Background: chart.Style{
 			FillColor: chart.ColorTransparent,
@@ -297,70 +309,95 @@ func (ui *EnergyUi) newGraph() *chart.Chart {
 				FontColor: font,
 			},
 			Range: &chart.ContinuousRange{
-				// Max: float64(int(highest/100))*100.0 + 150,
 				Max: 800,
 			},
 		},
-		Series: []chart.Series{},
+		Series: make([]chart.Series, len(ui.deviceStates)),
 		Width:  width - 50,
 		Height: 800,
 	}
 
-	graph.Elements = append(graph.Elements, chart.LegendLeft(&graph, chart.Style{
+	// Add all series to the chart
+	for i, device := range ui.deviceStates {
+		ui.graph.Series[i] = device.series
+	}
+
+	ui.graph.Elements = append(ui.graph.Elements, chart.LegendLeft(ui.graph, chart.Style{
 		FillColor:   fill,
 		FontColor:   font,
 		StrokeColor: font,
 		FontSize:    14,
 	}))
-
-	for _, device := range ui.deviceStates {
-		if len(device.values) == 0 {
-			continue
-		}
-
-		graph.Series = append(graph.Series, chart.TimeSeries{
-			Name:    device.deviceConfig.Name,
-			XValues: device.timestamps,
-			YValues: device.values,
-			Style: chart.Style{
-				StrokeWidth: 1.4,
-			},
-		})
-
-		/*
-			graph.Series = append(graph.Series, chart.AnnotationSeries{
-				Annotations: []chart.Value2{
-					{XValue: 600.0, YValue: 600.0, Label: "One"},
-					{XValue: 2.0, YValue: 2.0, Label: "Two"},
-					{XValue: 3.0, YValue: 3.0, Label: "Three"},
-					{XValue: 4.0, YValue: 4.0, Label: "Four"},
-					{XValue: 5.0, YValue: 5.0, Label: "Five"},
-				},
-				Style: chart.Style{
-					FillColor: chart.ColorWhite,
-				},
-			})*/
-	}
-
-	return &graph
 }
 
 func (ui *EnergyUi) updateGraph() {
-	graph := ui.newGraph()
+	// Update series data pointers
+	for _, device := range ui.deviceStates {
+		device.series.XValues = device.timestamps
+		if len(device.deviceConfig.Aggregate) == 0 {
+			device.series.YValues = device.values
+			continue
+		}
 
-	buffer := bytes.NewBuffer([]byte{})
-	err := graph.Render(chart.PNG, buffer)
+		// Apply aggregation
+		aggregatedValues := make([]float64, len(device.values))
+
+		for i, v := range device.values {
+			t := device.timestamps[i]
+
+			newValue := v
+			for _, aggr := range device.deviceConfig.Aggregate {
+				// Find other device by uuid
+				var otherDevice *EnergySensorState
+				for _, d := range ui.deviceStates {
+					if d.deviceConfig.UUID == aggr.Device {
+						otherDevice = d
+						break
+					}
+				}
+				if otherDevice == nil {
+					// Other device not found skip aggregation task
+					continue
+				}
+
+				// Find latest value at or before timestamp of other device
+				otherDeviceValue := 0.0
+				for j := len(otherDevice.timestamps) - 1; j >= 0; j-- {
+					if !otherDevice.timestamps[j].After(t) {
+						otherDeviceValue = otherDevice.values[j]
+					}
+				}
+
+				switch aggr.Operation {
+				case AggrOpAdd:
+					newValue += otherDeviceValue
+				case AggrOpSub:
+					newValue -= otherDeviceValue
+				}
+			}
+
+			aggregatedValues[i] = newValue
+		}
+
+		device.series.YValues = aggregatedValues
+	}
+
+	// Reuse buffer
+	ui.renderBuf.Reset()
+	err := ui.graph.Render(chart.PNG, ui.renderBuf)
 	if err != nil {
-		log.Println("Could not render graph")
-		log.Println(err)
+		log.Println("Could not render graph:", err)
 		return
 	}
 
-	img, err := png.Decode(buffer)
+	img, err := png.Decode(ui.renderBuf)
 	if err != nil {
-		log.Println("Could not decode graph png")
+		log.Println("Could not decode graph png:", err)
 		return
 	}
 
-	ui.chartImage = ebiten.NewImageFromImage(img)
+	// Convert to RGBA reusing buffer and write pixels directly
+	bounds := img.Bounds()
+	draw.Draw(ui.rgbaBuf, bounds, img, bounds.Min, draw.Src)
+	ui.chartImage.WritePixels(ui.rgbaBuf.Pix)
 }

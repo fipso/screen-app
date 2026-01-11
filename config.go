@@ -37,6 +37,18 @@ type RefossEnergyDeviceConfig struct {
 	Address string
 	UUID    string
 	Profile string
+	Aggregate []AggrTask
+}
+
+type AggrOp string
+const (
+	AggrOpAdd = "add"
+	AggrOpSub = "sub"
+)
+
+type AggrTask struct {
+	Device string
+	Operation AggrOp
 }
 
 type LayoutElement struct {
