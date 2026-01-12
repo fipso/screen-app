@@ -331,6 +331,20 @@ func (ui *EnergyUi) initGraph() {
 }
 
 func (ui *EnergyUi) updateGraph() {
+	// Update colors for day/night mode
+	fill := drawing.Color{R: bgColor.R, G: bgColor.G, B: bgColor.B, A: bgColor.A}
+	font := drawing.Color{R: textColor.R, G: textColor.G, B: textColor.B, A: textColor.A}
+	ui.graph.Canvas.FillColor = fill
+	ui.graph.YAxis.Style.FontColor = font
+
+	// Recreate legend with updated colors
+	ui.graph.Elements = []chart.Renderable{chart.LegendLeft(ui.graph, chart.Style{
+		FillColor:   fill,
+		FontColor:   font,
+		StrokeColor: font,
+		FontSize:    14,
+	})}
+
 	// Update series data pointers
 	for _, device := range ui.deviceStates {
 		device.series.XValues = device.timestamps
