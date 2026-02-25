@@ -379,6 +379,7 @@ func (ui *EnergyUi) updateGraph() {
 				for j := len(otherDevice.timestamps) - 1; j >= 0; j-- {
 					if !otherDevice.timestamps[j].After(t) {
 						otherDeviceValue = otherDevice.values[j]
+						break
 					}
 				}
 
