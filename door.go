@@ -11,10 +11,13 @@ import (
 )
 
 type DoorService struct {
-	lastRing time.Time
+	lastRing     time.Time
+	audioContext *audio.Context
 }
 
 func (s *DoorService) Run() {
+	s.audioContext = audio.NewContext(44100)
+
 	mqttService.WaitReady()
 
 	mqttService.Client.Subscribe("door/ring", 0, func(client mqtt.Client, msg mqtt.Message) {
@@ -59,8 +62,7 @@ func (s *DoorService) playAlarm() {
 		log.Println(err)
 		return
 	}
-	ac := audio.NewContext(44100)
-	player, err := ac.NewPlayer(stream)
+	player, err := s.audioContext.NewPlayer(stream)
 	if err != nil {
 		log.Println(err)
 		return
