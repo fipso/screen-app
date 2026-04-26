@@ -43,6 +43,20 @@ type RefossDeviceConfigRequestElectricity struct {
 	Channel int `json:"channel"`
 }
 
+type RefossToggleRequest struct {
+	Header  RefossDeviceConfigHeader `json:"header"`
+	Payload RefossTogglePayload      `json:"payload"`
+}
+
+type RefossTogglePayload struct {
+	Togglex RefossToggleX `json:"togglex"`
+}
+
+type RefossToggleX struct {
+	Channel int `json:"channel"`
+	Onoff   int `json:"onoff"`
+}
+
 type RefossDeviceConfigResponse struct {
 	Header  RefossDeviceConfigHeader `json:"header"`
 	Payload struct {
@@ -283,6 +297,73 @@ func (e *EnergySensorState) fetchState() error {
 		// Drop oldest value
 		e.values = e.values[1:]
 		e.timestamps = e.timestamps[1:]
+	}
+
+	return nil
+}
+
+func (d *RefossEnergyDeviceConfig) SetPlugState(on bool) error {
+	messageId := generateMessageId()
+	timestamp := time.Now().Unix()
+
+	key, ok := config.Energy.Profiles[d.Profile]
+	if !ok {
+		return fmt.Errorf("meross profile %s not found", d.Profile)
+	}
+
+	sign := generateSign(messageId, key, fmt.Sprintf("%d", timestamp))
+
+	url := fmt.Sprintf("%s/config", d.Address)
+
+	onoff := 0
+	if on {
+		onoff = 1
+	}
+
+	reqData := RefossToggleRequest{
+		Header: RefossDeviceConfigHeader{
+			Method:         "SET",
+			From:           url,
+			MessageID:      messageId,
+			PayloadVersion: 1,
+			Namespace:      "Appliance.Control.ToggleX",
+			UUID:           d.UUID,
+			Sign:           sign,
+			TriggerSrc:     "GoClient",
+			Timestamp:      int(timestamp),
+		},
+		Payload: RefossTogglePayload{
+			Togglex: RefossToggleX{
+				Channel: 0,
+				Onoff:   onoff,
+			},
+		},
+	}
+
+	reqDataJson, err := json.Marshal(reqData)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewReader(reqDataJson))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("Proxy-Connection", "keep-alive")
+	req.Header.Set("User-Agent", "intellect_socket/1.10.0 (iPhone; iOS 18.3.2; Scale/3.00)")
+	req.Header.Set("Accept-Language", "en-DE;q=1, de-DE;q=0.9")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("plug %s set state failed: %d: %s", d.UUID, resp.StatusCode, string(body))
 	}
 
 	return nil

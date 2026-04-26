@@ -55,6 +55,9 @@ func main() {
 	doorService := DoorService{}
 	go doorService.Run()
 
+	automationService := AutomationService{}
+	go automationService.Run()
+
 	go pollBinance()
 	go pollBusTimes()
 	go pollPollen()

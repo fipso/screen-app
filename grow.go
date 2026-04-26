@@ -344,8 +344,8 @@ func (ui *GrowUi) Init() {
 		mqttService.WaitReady()
 		for _, sensor := range config.Grow.Sensors {
 			log.Println("[GrowUI] Subscribing to", sensor.Temp, "and", sensor.Humid)
-			mqttService.Client.Subscribe(sensor.Temp, 0, ui.messagePubHandler)
-			mqttService.Client.Subscribe(sensor.Humid, 0, ui.messagePubHandler)
+			mqttService.On(sensor.Temp, ui.messagePubHandler)
+			mqttService.On(sensor.Humid, ui.messagePubHandler)
 		}
 	}()
 }

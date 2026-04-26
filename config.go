@@ -30,6 +30,24 @@ type Config struct {
 		Profiles        map[string]string
 		Devices         []RefossEnergyDeviceConfig
 	}
+	Automations []AutomationConfig
+}
+
+type AutomationOperator string
+
+const (
+	AutomationOpAbove AutomationOperator = "above"
+	AutomationOpBelow AutomationOperator = "below"
+)
+
+type AutomationConfig struct {
+	Name       string
+	Topic      string
+	Operator   AutomationOperator
+	Threshold  float64
+	Hysteresis float64
+	DeviceUUID string
+	OnTrigger  bool
 }
 
 type RefossEnergyDeviceConfig struct {
