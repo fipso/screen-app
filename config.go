@@ -23,6 +23,10 @@ type Config struct {
 			Humid string
 		}
 	}
+	Bus struct {
+		LineNumber string
+		Stops      []BusStopConfig
+	}
 	Default_Font_Size int
 	Layout            []LayoutElement
 	Energy            struct {
@@ -31,6 +35,12 @@ type Config struct {
 		Devices         []RefossEnergyDeviceConfig
 	}
 	Automations []AutomationConfig
+}
+
+type BusStopConfig struct {
+	Name        string
+	Origin      string
+	Destination string
 }
 
 type AutomationOperator string

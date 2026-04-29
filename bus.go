@@ -302,8 +302,9 @@ func pollBusTimes() {
 	}
 
 	for {
-		busTimes["w. tal"] = GetBusTime("de%3A05158%3A19001", "de%3A05158%3A13980")
-		busTimes["d. dorf"] = GetBusTime("de%3A05158%3A19001", "de%3A05158%3A18969")
+		for _, stop := range config.Bus.Stops {
+			busTimes[stop.Name] = GetBusTime(stop.Origin, stop.Destination)
+		}
 		time.Sleep(time.Second * 30)
 	}
 
@@ -339,7 +340,7 @@ JOURNEY_LOOP:
 	for _, journey := range busData.Journeys {
 		// Skip wrong bus & multi bus connections
 		for _, leg := range journey.Legs {
-			if leg.Transportation.Number != "784" {
+			if config.Bus.LineNumber != "" && leg.Transportation.Number != config.Bus.LineNumber {
 				continue JOURNEY_LOOP
 			}
 		}
@@ -368,10 +369,9 @@ func (ui *BusUi) Bounds() (width, height int) {
 func (ui *BusUi) Draw() *ebiten.Image {
 	ui.screen.Fill(bgColor)
 
-	busKeys := []string{"w. tal", "d. dorf"}
-	for i, key := range busKeys {
-		text.Draw(ui.screen, key, defaultFont, fontWidth*2+fontWidth*7*i, fontHeight, textColor)
-		times := busTimes[key]
+	for i, stop := range config.Bus.Stops {
+		text.Draw(ui.screen, stop.Name, defaultFont, fontWidth*2+fontWidth*7*i, fontHeight, textColor)
+		times := busTimes[stop.Name]
 		for j, entry := range times {
 			if j >= 3 {
 				continue
