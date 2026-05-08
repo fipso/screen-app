@@ -25,12 +25,38 @@ func (s *MqttService) Run() {
 	opts.SetDefaultPublishHandler(s.defaultMessagePubHandler)
 	opts.SetUsername(config.Mqtt.Username)
 	opts.SetPassword(config.Mqtt.Password)
+	opts.SetAutoReconnect(true)
+	opts.SetConnectRetry(true)
+	opts.SetConnectRetryInterval(5 * time.Second)
+	opts.SetOnConnectHandler(func(c mqtt.Client) {
+		log.Println("Connected to MQTT")
+		s.mu.Lock()
+		topics := make([]string, 0, len(s.handlers))
+		for t := range s.handlers {
+			topics = append(topics, t)
+		}
+		s.mu.Unlock()
+		for _, t := range topics {
+			c.Subscribe(t, 0, s.dispatch)
+		}
+	})
+	opts.SetConnectionLostHandler(func(_ mqtt.Client, err error) {
+		log.Printf("MQTT connection lost: %v", err)
+	})
 	s.Client = mqtt.NewClient(opts)
 	if token := s.Client.Connect(); token.Wait() && token.Error() != nil {
 		log.Println(token.Error())
 		return
 	}
-	log.Println("Connected to MQTT")
+}
+
+func (s *MqttService) dispatch(client mqtt.Client, msg mqtt.Message) {
+	s.mu.Lock()
+	hs := s.handlers[msg.Topic()]
+	s.mu.Unlock()
+	for _, h := range hs {
+		h(client, msg)
+	}
 }
 
 func (s *MqttService) WaitReady() {
@@ -58,12 +84,5 @@ func (s *MqttService) On(topic string, handler mqtt.MessageHandler) {
 	if exists {
 		return
 	}
-	s.Client.Subscribe(topic, 0, func(client mqtt.Client, msg mqtt.Message) {
-		s.mu.Lock()
-		hs := s.handlers[msg.Topic()]
-		s.mu.Unlock()
-		for _, h := range hs {
-			h(client, msg)
-		}
-	})
+	s.Client.Subscribe(topic, 0, s.dispatch)
 }

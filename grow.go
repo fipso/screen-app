@@ -5,7 +5,6 @@ import (
 	"log"
 	"strconv"
 	"strings"
-	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/hajimehoshi/ebiten/v2"
@@ -20,10 +19,8 @@ type GrowUi struct {
 }
 
 type SensorData struct {
-	tempLast     float64
-	humidLast    float64
-	tempHistory  map[time.Time]float64
-	humidHistory map[time.Time]float64
+	tempLast  float64
+	humidLast float64
 }
 
 func (ui *GrowUi) messagePubHandler(client mqtt.Client, msg mqtt.Message) {
@@ -34,12 +31,10 @@ func (ui *GrowUi) messagePubHandler(client mqtt.Client, msg mqtt.Message) {
 		}
 		if msg.Topic() == sensor.Temp {
 			ui.sensorData[i].tempLast = v
-			ui.sensorData[i].tempHistory[time.Now()] = v
 			ui.vpdChart.Update(i, ui.sensorData[i].tempLast, ui.sensorData[i].humidLast)
 		}
 		if msg.Topic() == sensor.Humid {
 			ui.sensorData[i].humidLast = v
-			ui.sensorData[i].humidHistory[time.Now()] = v
 			ui.vpdChart.Update(i, ui.sensorData[i].tempLast, ui.sensorData[i].humidLast)
 		}
 	}
@@ -323,12 +318,7 @@ func (ui *GrowUi) Init() {
 	var sensorNames []string
 	for _, s := range config.Grow.Sensors {
 		sensorNames = append(sensorNames, s.Name)
-		ui.sensorData = append(ui.sensorData, SensorData{
-			tempLast:     0,
-			humidLast:    0,
-			tempHistory:  make(map[time.Time]float64),
-			humidHistory: make(map[time.Time]float64),
-		})
+		ui.sensorData = append(ui.sensorData, SensorData{})
 	}
 	// Init virtual outdoor sensor
 	sensorNames = append(sensorNames, "Outdoor")

@@ -5,8 +5,10 @@ import (
 	"image/color"
 	"log"
 	"math"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/adshao/go-binance/v2"
@@ -18,7 +20,13 @@ const FIAT_SYMBOL = "USDT"
 
 var pricesText string
 
+// historyRetention is how far back we keep WS kline events. calcDelta only
+// looks back 24h; the extra hour is slack so a delta lookup at the boundary
+// still finds something.
+const historyRetention = 25 * time.Hour
+
 type CurrencyPair struct {
+	mu      sync.Mutex
 	symbol1 string
 	symbol2 string
 	price   float64
@@ -51,31 +59,50 @@ func pollBinance() {
 }
 
 func sortedCurrencyPairs() []*CurrencyPair {
-	// Sort cyrrencies by price
-	var sortedPairs []*CurrencyPair
+	// Snapshot prices once under each pair's lock so the sort sees a stable
+	// view and the WS goroutine isn't racing the comparator.
+	type snap struct {
+		pair  *CurrencyPair
+		price float64
+	}
+	snaps := make([]snap, 0, len(pairs))
 	for _, pair := range pairs {
-		sortedPairs = append(sortedPairs, pair)
+		pair.mu.Lock()
+		snaps = append(snaps, snap{pair: pair, price: pair.price})
+		pair.mu.Unlock()
 	}
-	for i := 0; i < len(sortedPairs); i++ {
-		for j := i + 1; j < len(sortedPairs); j++ {
-			if sortedPairs[i].price < sortedPairs[j].price {
-				sortedPairs[i], sortedPairs[j] = sortedPairs[j], sortedPairs[i]
-			}
-		}
+	sort.Slice(snaps, func(i, j int) bool {
+		return snaps[i].price > snaps[j].price
+	})
+	out := make([]*CurrencyPair, len(snaps))
+	for i, s := range snaps {
+		out[i] = s.pair
 	}
-
-	return sortedPairs
+	return out
 }
 
 func watchCurrency(pair *CurrencyPair) {
 	for {
 		wsKlineHandler := func(event *binance.WsKlineEvent) {
-			var err error
-			pair.price, err = strconv.ParseFloat(event.Kline.Close, 64)
-			pair.history = append(pair.history, *event)
+			price, err := strconv.ParseFloat(event.Kline.Close, 64)
 			if err != nil {
 				fmt.Println(err)
 			}
+			pair.mu.Lock()
+			pair.price = price
+			pair.history = append(pair.history, *event)
+			cutoffMs := time.Now().Add(-historyRetention).UnixMilli()
+			drop := sort.Search(len(pair.history), func(i int) bool {
+				return pair.history[i].Kline.EndTime >= cutoffMs
+			})
+			if drop > 0 {
+				// Re-slice into a fresh backing array so the dropped prefix can be
+				// GC'd; otherwise the underlying array keeps growing forever.
+				kept := make([]binance.WsKlineEvent, len(pair.history)-drop)
+				copy(kept, pair.history[drop:])
+				pair.history = kept
+			}
+			pair.mu.Unlock()
 		}
 		doneC, _, err := binance.WsKlineServe(
 			fmt.Sprintf("%s%s", pair.symbol1, pair.symbol2),
@@ -95,25 +122,26 @@ func watchCurrency(pair *CurrencyPair) {
 }
 
 func calcDelta(pair *CurrencyPair, span time.Duration) float64 {
+	pair.mu.Lock()
+	defer pair.mu.Unlock()
+
 	if len(pair.history) == 0 {
 		return 0
 	}
 
-	for _, event := range pair.history {
-		if time.Now().Sub(time.Unix(event.Kline.EndTime/1000, 0)) < span {
-			s := event.Kline.Close
-			f, err := strconv.ParseFloat(s, 64)
-			if err != nil {
-				log.Fatal(err)
-			}
+	cutoffMs := time.Now().Add(-span).UnixMilli()
+	idx := sort.Search(len(pair.history), func(i int) bool {
+		return pair.history[i].Kline.EndTime >= cutoffMs
+	})
 
-			return pair.price - f
-		}
+	var s string
+	if idx < len(pair.history) {
+		s = pair.history[idx].Kline.Close
+	} else {
+		// No event within the span — fall back to the most recent one.
+		s = pair.history[len(pair.history)-1].Kline.Close
 	}
-
-	// If no event in the last hour, return the delta between the last event and the current price
-	last := pair.history[len(pair.history)-1].Kline.Close
-	f, err := strconv.ParseFloat(last, 64)
+	f, err := strconv.ParseFloat(s, 64)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -142,15 +170,23 @@ func (ui *CryptoUi) Draw() *ebiten.Image {
 			c = color.RGBA{255, 0, 0, 255}
 		}
 
-		value := fmt.Sprintf("%.2f", currency.price)
-		if currency.price > 1000 {
-			value = fmt.Sprintf("%.2fk", currency.price/1000)
+		currency.mu.Lock()
+		price := currency.price
+		currency.mu.Unlock()
+
+		value := fmt.Sprintf("%.2f", price)
+		if price > 1000 {
+			value = fmt.Sprintf("%.2fk", price/1000)
 		}
-		if currency.price < 0.01 {
-			value = fmt.Sprintf("%.2e", currency.price)
+		if price < 0.01 {
+			value = fmt.Sprintf("%.2e", price)
 		}
 
-		line := fmt.Sprintf("%-5s %-8s %.1f%%", strings.ToLower(currency.symbol1), value, math.Abs(delta/currency.price*100))
+		pct := 0.0
+		if price != 0 {
+			pct = math.Abs(delta / price * 100)
+		}
+		line := fmt.Sprintf("%-5s %-8s %.1f%%", strings.ToLower(currency.symbol1), value, pct)
 		text.Draw(ui.screen, line, defaultFont, 0, (fontHeight+linePadding)*(i+1), c)
 	}
 

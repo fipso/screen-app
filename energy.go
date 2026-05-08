@@ -165,18 +165,49 @@ func (ui *EnergyUi) pollDeviceStates() {
 				if err != nil {
 					log.Println("Error polling refoss device:", s.deviceConfig.Address, err)
 				}
-				time.Sleep(time.Millisecond*500)
+				time.Sleep(time.Second * 2)
 			}
 		}(device)
 	}
 
-	// Update chart
+	// Update chart less often than we poll — rendering ~300k points was the
+	// CPU drag on the helper threads.
 	go func() {
 		for {
-			time.Sleep(time.Millisecond*500)
+			time.Sleep(time.Second * 3)
 			ui.updateGraph()
 		}
 	}()
+}
+
+// chartMaxPoints caps how many samples we hand to go-chart per series. With
+// 6h × 0.5 Hz we have ~10k points per device; the chart canvas is ~1k pixels
+// wide so anything beyond a few hundred is wasted work + GC pressure.
+const chartMaxPoints = 600
+
+func decimate(timestamps []time.Time, values []float64) ([]time.Time, []float64) {
+	n := len(values)
+	if n <= chartMaxPoints {
+		return timestamps, values
+	}
+	stride := n / chartMaxPoints
+	if stride < 1 {
+		stride = 1
+	}
+	outLen := (n + stride - 1) / stride
+	xs := make([]time.Time, 0, outLen)
+	ys := make([]float64, 0, outLen)
+	for i := 0; i < n; i += stride {
+		xs = append(xs, timestamps[i])
+		ys = append(ys, values[i])
+	}
+	// Always keep the most recent sample so the right edge of the chart
+	// reflects the latest reading.
+	if len(xs) == 0 || !xs[len(xs)-1].Equal(timestamps[n-1]) {
+		xs = append(xs, timestamps[n-1])
+		ys = append(ys, values[n-1])
+	}
+	return xs, ys
 }
 
 // generateRandomString creates a random string of specified length
@@ -428,9 +459,10 @@ func (ui *EnergyUi) updateGraph() {
 
 	// Update series data pointers
 	for _, device := range ui.deviceStates {
-		device.series.XValues = device.timestamps
 		if len(device.deviceConfig.Aggregate) == 0 {
-			device.series.YValues = device.values
+			xs, ys := decimate(device.timestamps, device.values)
+			device.series.XValues = xs
+			device.series.YValues = ys
 			continue
 		}
 
@@ -475,7 +507,9 @@ func (ui *EnergyUi) updateGraph() {
 			aggregatedValues[i] = newValue
 		}
 
-		device.series.YValues = aggregatedValues
+		xs, ys := decimate(device.timestamps, aggregatedValues)
+		device.series.XValues = xs
+		device.series.YValues = ys
 	}
 
 	// Reuse buffer

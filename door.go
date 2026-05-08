@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"log"
 	"os"
 	"time"
@@ -13,10 +14,18 @@ import (
 type DoorService struct {
 	lastRing     time.Time
 	audioContext *audio.Context
+	alarmBytes   []byte
 }
 
 func (s *DoorService) Run() {
 	s.audioContext = audio.NewContext(44100)
+
+	// Preload the alarm mp3 once so playAlarm doesn't open a fd per ring.
+	if b, err := os.ReadFile("./assets/alaram.mp3"); err != nil {
+		log.Println("door: could not load alarm mp3:", err)
+	} else {
+		s.alarmBytes = b
+	}
 
 	mqttService.WaitReady()
 
@@ -51,13 +60,10 @@ func (s *DoorService) Run() {
 }
 
 func (s *DoorService) playAlarm() {
-	// Play door alarm sound mp3
-	soundFileReader, err := os.Open("./assets/alaram.mp3")
-	if err != nil {
-		log.Println(err)
+	if len(s.alarmBytes) == 0 {
 		return
 	}
-	stream, err := mp3.DecodeWithSampleRate(44100, soundFileReader)
+	stream, err := mp3.DecodeWithSampleRate(44100, bytes.NewReader(s.alarmBytes))
 	if err != nil {
 		log.Println(err)
 		return
@@ -69,4 +75,15 @@ func (s *DoorService) playAlarm() {
 	}
 	player.SetVolume(1)
 	player.Play()
+
+	// Tear the player down once playback finishes so the decoder + buffers
+	// don't leak on every ring.
+	go func() {
+		for player.IsPlaying() {
+			time.Sleep(200 * time.Millisecond)
+		}
+		if err := player.Close(); err != nil {
+			log.Println("door: player close:", err)
+		}
+	}()
 }
