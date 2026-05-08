@@ -13,6 +13,7 @@ import (
 
 type DoorService struct {
 	lastRing     time.Time
+	lastOpen     time.Time
 	audioContext *audio.Context
 	alarmBytes   []byte
 }
@@ -29,7 +30,9 @@ func (s *DoorService) Run() {
 
 	mqttService.WaitReady()
 
-	mqttService.Client.Subscribe("door/ring", 0, func(client mqtt.Client, msg mqtt.Message) {
+	// Use mqttService.On so the subscription is re-established by the
+	// OnConnect handler if the broker connection drops.
+	mqttService.On("door/ring", func(client mqtt.Client, msg mqtt.Message) {
 		// Play door alarm sound
 		go s.playAlarm()
 
@@ -51,10 +54,42 @@ func (s *DoorService) Run() {
 		m.Init()
 		game.currentModal = m
 
-		// Remove door alert modal after 20s
+		// Remove door alert modal after 20s — only if it's still ours, so a
+		// later modal (e.g. door/open) doesn't get cleared by our timer.
 		go func() {
 			time.Sleep(time.Second * 20)
-			game.currentModal = nil
+			if game != nil && game.currentModal == m {
+				game.currentModal = nil
+			}
+		}()
+	})
+
+	mqttService.On("door/open", func(client mqtt.Client, msg mqtt.Message) {
+		if game == nil || time.Since(s.lastOpen) < 4*time.Second {
+			return
+		}
+		s.lastOpen = time.Now()
+
+		// Don't stomp on an active doorbell modal.
+		if game.currentModal != nil {
+			return
+		}
+
+		m := &ModalUi{
+			stackLayout: []UiElement{
+				&AlertUi{
+					icon: "", // FA door-open
+				},
+			},
+		}
+		m.Init()
+		game.currentModal = m
+
+		go func() {
+			time.Sleep(3 * time.Second)
+			if game != nil && game.currentModal == m {
+				game.currentModal = nil
+			}
 		}()
 	})
 }
