@@ -36,8 +36,8 @@ var (
 )
 
 var (
-	textColor = color.RGBA{255, 255, 255, 255}
-	bgColor   = color.RGBA{0, 0, 0, 255}
+	textColor, bgColor, dimColor, ruleColor color.RGBA
+	accentColor, posColor, negColor         color.RGBA
 )
 
 var (
@@ -173,17 +173,14 @@ func runGameUI() {
 	// DEBUG:!!!
 	// Spawn test modal
 
-	// Dark/Light mode
+	// Theme: static colors load once; bg/fg/dim/rule swap with day/night.
+	accentColor = parseHex(config.Theme.Accent)
+	posColor = parseHex(config.Theme.Positive)
+	negColor = parseHex(config.Theme.Negative)
+	applyDayNightPalette()
 	go func() {
 		for {
-			if time.Now().Hour() > 17 || time.Now().Hour() < 8 {
-				textColor = color.RGBA{255, 255, 255, 255}
-				bgColor = color.RGBA{0, 0, 0, 255}
-			} else {
-				textColor = color.RGBA{0, 0, 0, 255}
-				bgColor = color.RGBA{245, 245, 245, 255}
-			}
-
+			applyDayNightPalette()
 			time.Sleep(time.Second)
 		}
 	}()

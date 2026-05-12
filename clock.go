@@ -15,7 +15,6 @@ type ClockUi struct {
 }
 
 func (ui *ClockUi) Init() {
-	// Load locations
 	ui.moscowLoc, _ = time.LoadLocation("Europe/Moscow")
 	ui.washingtonLoc, _ = time.LoadLocation("America/New_York")
 
@@ -24,20 +23,32 @@ func (ui *ClockUi) Init() {
 }
 
 func (ui *ClockUi) Bounds() (width, height int) {
-	return config.Width, fontHeight + linePadding*4
+	return config.Width, 156
 }
 
 func (ui *ClockUi) Draw() *ebiten.Image {
 	ui.screen.Fill(bgColor)
 
-	text.Draw(ui.screen, time.Now().Format("15:04"), clockFont, fontWidth, fontHeight+linePadding*2, textColor)
-	text.Draw(ui.screen, "BER", tinyFont, fontWidth*4, fontHeight+linePadding*2, textColor)
+	contentWidth := config.Width - 2*paddingX
+	cellWidth := contentWidth / 3
+	now := time.Now()
+	cells := []struct {
+		t    string
+		city string
+	}{
+		{now.Format("15:04"), "ber"},
+		{now.In(ui.moscowLoc).Format("15:04"), "mosc"},
+		{now.In(ui.washingtonLoc).Format("15:04"), "wash"},
+	}
 
-	text.Draw(ui.screen, time.Now().In(ui.moscowLoc).Format("15:04"), clockFont, fontWidth*6, fontHeight+linePadding*2, textColor)
-	text.Draw(ui.screen, "MOSC", tinyFont, fontWidth*9, fontHeight+linePadding*2, textColor)
+	const timeBaseline = 100
+	const cityBaseline = 148
 
-	text.Draw(ui.screen, time.Now().In(ui.washingtonLoc).Format("15:04"), clockFont, fontWidth*11, fontHeight+linePadding*2, textColor)
-	text.Draw(ui.screen, "WASH", tinyFont, fontWidth*14+fontWidth/2, fontHeight+linePadding*2, textColor)
+	for i, c := range cells {
+		x := i * cellWidth
+		text.Draw(ui.screen, c.t, clockFont, x, timeBaseline, textColor)
+		text.Draw(ui.screen, c.city, tinyFont, x, cityBaseline, dimColor)
+	}
 
 	return ui.screen
 }

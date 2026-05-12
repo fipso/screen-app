@@ -19,7 +19,7 @@ type DoorService struct {
 }
 
 func (s *DoorService) Run() {
-	s.audioContext = audio.NewContext(44100)
+	s.audioContext = getAudioContext()
 
 	// Preload the alarm mp3 once so playAlarm doesn't open a fd per ring.
 	if b, err := os.ReadFile("./assets/alaram.mp3"); err != nil {

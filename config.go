@@ -35,6 +35,23 @@ type Config struct {
 		Devices         []RefossEnergyDeviceConfig
 	}
 	Automations []AutomationConfig
+	Alerts      []SensorAlertConfig
+	Theme       ThemeConfig
+}
+
+type ThemeConfig struct {
+	Night    ThemePalette
+	Day      ThemePalette
+	Accent   string
+	Positive string
+	Negative string
+}
+
+type ThemePalette struct {
+	Background string
+	Primary    string
+	Secondary  string
+	Rule       string
 }
 
 type BusStopConfig struct {
@@ -58,6 +75,18 @@ type AutomationConfig struct {
 	Hysteresis float64
 	DeviceUUID string
 	OnTrigger  bool
+}
+
+type SensorAlertConfig struct {
+	Name       string
+	Topic      string
+	Min        *float64
+	Max        *float64
+	Hysteresis float64
+	Sound      string
+	Message    string
+	Icon       string
+	DurationS  int
 }
 
 type RefossEnergyDeviceConfig struct {
@@ -142,4 +171,5 @@ func loadConfig() {
 	if config.Energy.MaxHistoryHours == 0 {
 		config.Energy.MaxHistoryHours = 6
 	}
+	applyThemeDefaults(&config.Theme)
 }

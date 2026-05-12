@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"image/color"
 	"log"
 	"math"
 	"sort"
@@ -154,20 +153,27 @@ func (ui *CryptoUi) Init() {
 }
 
 func (ui *CryptoUi) Bounds() (width, height int) {
-	return config.Width, (fontHeight+linePadding)*len(symbols) + linePadding*10
+	return config.Width, sectionHeaderHeight + (fontHeight+linePadding)*len(symbols) + linePadding*4
 }
 
 func (ui *CryptoUi) Draw() *ebiten.Image {
 	ui.screen.Fill(bgColor)
 
+	contentY := drawSectionHeader(ui.screen, "markets · live", "24h", 0)
+	contentWidth := config.Width - 2*paddingX
+
 	prices := sortedCurrencyPairs()
 	for i, currency := range prices {
 		c := textColor
 		delta := calcDelta(currency, time.Hour*24)
-		if delta > 0 {
-			c = color.RGBA{20, 200, 20, 255}
-		} else if delta < 0 {
-			c = color.RGBA{255, 0, 0, 255}
+		glyph := ""
+		switch {
+		case delta > 0:
+			c = posColor
+			glyph = "▲"
+		case delta < 0:
+			c = negColor
+			glyph = "▼"
 		}
 
 		currency.mu.Lock()
@@ -186,8 +192,14 @@ func (ui *CryptoUi) Draw() *ebiten.Image {
 		if price != 0 {
 			pct = math.Abs(delta / price * 100)
 		}
-		line := fmt.Sprintf("%-5s %-8s %.1f%%", strings.ToLower(currency.symbol1), value, pct)
-		text.Draw(ui.screen, line, defaultFont, 0, (fontHeight+linePadding)*(i+1), c)
+
+		y := contentY + fontHeight + (fontHeight+linePadding)*i
+		prefix := fmt.Sprintf("%-5s %-8s", strings.ToLower(currency.symbol1), value)
+		text.Draw(ui.screen, prefix, defaultFont, 0, y, textColor)
+
+		deltaStr := fmt.Sprintf("%s %.1f%%", glyph, pct)
+		b := text.BoundString(smallFont, deltaStr)
+		text.Draw(ui.screen, deltaStr, smallFont, contentWidth-b.Dx(), y, c)
 	}
 
 	return ui.screen

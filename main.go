@@ -58,6 +58,9 @@ func main() {
 	automationService := AutomationService{}
 	go automationService.Run()
 
+	sensorAlertService := SensorAlertService{}
+	go sensorAlertService.Run()
+
 	go pollBinance()
 	go pollBusTimes()
 	go pollPollen()

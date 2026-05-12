@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"image/color"
 	"io"
 	"log"
 	"net/http"
@@ -102,69 +101,36 @@ func (ui *KnifeAttackUi) Init() {
 }
 
 func (ui *KnifeAttackUi) Bounds() (width, height int) {
-	return config.Width, 1200
+	return config.Width, sectionHeaderHeight + 1120
 }
 
 func (ui *KnifeAttackUi) Draw() *ebiten.Image {
 	ui.screen.Fill(bgColor)
 
-	text.Draw(
+	contentY := drawSectionHeader(
 		ui.screen,
-		fmt.Sprintf(
-			" messerinzidenz  %d",
-			len(attackRecords.Items),
-		),
-		defaultFont,
+		"messerinzidenz",
+		fmt.Sprintf("%d · 24h", len(attackRecords.Items)),
 		0,
-		100,
-		textColor,
 	)
 
 	height := 0
 	for _, attack := range attackRecords.Items {
 		c := textColor
 		if attack.Wounded {
-			c = color.RGBA{255, 0, 0, 255}
+			c = negColor
 		}
 
 		var t string
 		if len(attack.Title)+len(attack.Location) < 40 {
-			t = fmt.Sprintf(
-				"%s - %s",
-				attack.Location,
-				attack.Title,
-			)
-			text.Draw(
-				ui.screen,
-				t,
-				smallFont,
-				0,
-				190+height,
-				c,
-			)
+			t = fmt.Sprintf("%s - %s", attack.Location, attack.Title)
+			text.Draw(ui.screen, t, smallFont, 0, contentY+48+height, c)
 			height += 48 + linePadding
 		} else {
-			t = fmt.Sprintf(
-				"%s:",
-				attack.Location,
-			)
-			text.Draw(
-				ui.screen,
-				t,
-				smallFont,
-				0,
-				190+height,
-				c,
-			)
+			t = fmt.Sprintf("%s:", attack.Location)
+			text.Draw(ui.screen, t, smallFont, 0, contentY+48+height, c)
 			height += 48
-			text.Draw(
-				ui.screen,
-				attack.Title,
-				smallFont,
-				40,
-				190+height,
-				c,
-			)
+			text.Draw(ui.screen, attack.Title, smallFont, 40, contentY+48+height, c)
 			height += 48 + linePadding
 		}
 	}

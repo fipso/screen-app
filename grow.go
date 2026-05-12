@@ -341,34 +341,16 @@ func (ui *GrowUi) Init() {
 }
 
 func (ui *GrowUi) Bounds() (width, height int) {
-	return config.Width, 1420
+	return config.Width, sectionHeaderHeight + 1180
 }
 
 func (ui *GrowUi) Draw() *ebiten.Image {
 	ui.screen.Fill(bgColor)
 
-	// Plot the temperature and humidity history
-	/*
-		if ui.tempGraphImage != nil {
-			pos := ebiten.GeoM{}
-			pos.Translate(0, float64(linePadding*2))
-			opts := &ebiten.DrawImageOptions{
-				GeoM: pos,
-			}
-			ui.screen.DrawImage(ui.tempGraphImage, opts)
-		}
-
-		if ui.vpdGraphImage != nil {
-			pos := ebiten.GeoM{}
-			pos.Translate(0, 1000)
-			opts := &ebiten.DrawImageOptions{
-				GeoM: pos,
-			}
-			ui.screen.DrawImage(ui.vpdGraphImage, opts)
-		}*/
+	contentY := drawSectionHeader(ui.screen, "grow · vpd", "kpa", 0)
 
 	pos := ebiten.GeoM{}
-	pos.Translate(0, 50)
+	pos.Translate(0, float64(contentY+20))
 	ui.vpdChart.Draw()
 	ui.screen.DrawImage(ui.vpdChart.image, &ebiten.DrawImageOptions{
 		GeoM: pos,
@@ -385,7 +367,7 @@ func (ui *GrowUi) Draw() *ebiten.Image {
 			),
 			defaultFont,
 			0,
-			800+(i*(fontHeight*3)+linePadding),
+			contentY+770+(i*(fontHeight*3)+linePadding),
 			textColor,
 		)
 	}

@@ -20,6 +20,8 @@ import (
 	"github.com/wcharczuk/go-chart/v2/drawing"
 )
 
+var refossHTTPClient = &http.Client{Timeout: 5 * time.Second}
+
 type RefossDeviceConfigHeader struct {
 	MessageID      string `json:"messageId"`
 	Method         string `json:"method"`
@@ -118,25 +120,11 @@ func (ui *EnergyUi) Init() {
 }
 
 func (ui *EnergyUi) Bounds() (width, height int) {
-	return config.Width, 1300
+	return config.Width, sectionHeaderHeight + 1180
 }
 
 func (ui *EnergyUi) Draw() *ebiten.Image {
 	ui.screen.Fill(bgColor)
-
-	// Draw the energy usage for each device
-	// for i, device := range config.Refoss_Energy_Devices {
-	// 	usage := energyUsage[device.Address]
-	// 	text.Draw(ui.screen, fmt.Sprintf("%s: %dW", strings.ToLower(device.Name), usage), defaultFont, 0, fontHeight+(linePadding+fontHeight)*i, textColor)
-	// }
-
-	text.Draw(ui.screen, "power", defaultFont, 0, 100, textColor)
-
-	pos := ebiten.GeoM{}
-	pos.Translate(0, 140)
-	ui.screen.DrawImage(ui.chartImage, &ebiten.DrawImageOptions{
-		GeoM: pos,
-	})
 
 	usage := 0.0
 	for _, device := range ui.deviceStates {
@@ -145,12 +133,21 @@ func (ui *EnergyUi) Draw() *ebiten.Image {
 		}
 		usage += device.series.YValues[len(device.series.YValues)-1]
 	}
+
+	contentY := drawSectionHeader(ui.screen, "power", fmt.Sprintf("%dw", int(usage)), 0)
+
+	pos := ebiten.GeoM{}
+	pos.Translate(0, float64(contentY+20))
+	ui.screen.DrawImage(ui.chartImage, &ebiten.DrawImageOptions{
+		GeoM: pos,
+	})
+
 	text.Draw(
 		ui.screen,
 		fmt.Sprintf("total consooomtion:\n\n   %dW %.2f€/h", int(usage), usage/1000*0.35),
 		defaultFont,
 		0,
-		1100,
+		contentY+980,
 		textColor,
 	)
 
@@ -376,28 +373,40 @@ func (d *RefossEnergyDeviceConfig) SetPlugState(on bool) error {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewReader(reqDataJson))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Connection", "keep-alive")
-	req.Header.Set("Proxy-Connection", "keep-alive")
-	req.Header.Set("User-Agent", "intellect_socket/1.10.0 (iPhone; iOS 18.3.2; Scale/3.00)")
-	req.Header.Set("Accept-Language", "en-DE;q=1, de-DE;q=0.9")
+	const maxAttempts = 5
+	backoff := time.Second
+	var lastErr error
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		req, err := http.NewRequest("POST", url, bytes.NewReader(reqDataJson))
+		if err != nil {
+			return err
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Connection", "keep-alive")
+		req.Header.Set("Proxy-Connection", "keep-alive")
+		req.Header.Set("User-Agent", "intellect_socket/1.10.0 (iPhone; iOS 18.3.2; Scale/3.00)")
+		req.Header.Set("Accept-Language", "en-DE;q=1, de-DE;q=0.9")
 
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
+		resp, err := refossHTTPClient.Do(req)
+		if err != nil {
+			lastErr = fmt.Errorf("plug %s set state request failed: %w", d.UUID, err)
+		} else if resp.StatusCode > 399 {
+			body, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			lastErr = fmt.Errorf("plug %s set state failed: %d: %s", d.UUID, resp.StatusCode, string(body))
+		} else {
+			io.Copy(io.Discard, resp.Body)
+			resp.Body.Close()
+			return nil
+		}
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("plug %s set state failed: %d: %s", d.UUID, resp.StatusCode, string(body))
+		if attempt < maxAttempts {
+			log.Printf("plug %s set state attempt %d/%d failed: %v; retrying in %s", d.UUID, attempt, maxAttempts, lastErr, backoff)
+			time.Sleep(backoff)
+			backoff *= 2
+		}
 	}
-
-	return nil
+	return lastErr
 }
 
 func (ui *EnergyUi) initGraph() {

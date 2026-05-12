@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>screen-app · refined palette</title>
+<style>
+  @font-face {
+    font-family: "MajorMono";
+    src: url("assets/fonts/MajorMonoDisplay-Regular.ttf") format("truetype");
+    font-display: block;
+  }
+  @font-face {
+    font-family: "TechBold";
+    src: url("assets/fonts/technology.bold.ttf") format("truetype");
+    font-display: block;
+  }
+  @font-face {
+    font-family: "OpenSans";
+    src: url("assets/fonts/OpenSans-Regular.ttf") format("truetype");
+    font-display: block;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { background: #1c1c1c; }
+  body {
+    color: #888;
+    font-family: "OpenSans", system-ui, sans-serif;
+    padding: 28px 32px 48px;
+    min-height: 100vh;
+  }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 22px;
+    padding: 0 4px;
+  }
+  header h1 {
+    font-family: "MajorMono", monospace;
+    font-size: 13px;
+    letter-spacing: 0.25em;
+    text-transform: lowercase;
+    color: #aaa;
+    font-weight: normal;
+  }
+  header .hint {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #555;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(340px, 1fr));
+    gap: 22px;
+  }
+
+  .col { display: flex; flex-direction: column; gap: 10px; }
+  .col-label {
+    font-family: "MajorMono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: lowercase;
+    color: #888;
+    padding-left: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .col-label .num { color: #555; font-size: 10px; }
+
+  .panel {
+    aspect-ratio: 1080 / 1920;
+    min-height: 720px;
+    padding: 26px 22px;
+    overflow: hidden;
+    border: 1px solid #2a2a2a;
+  }
+
+  /* ─── Night · current colors ─────────────────────────── */
+  .v-night-current {
+    --bg: #000000;
+    --fg: #FFFFFF;
+    --dim: rgba(255, 255, 255, 0.42);
+    --rule: rgba(255, 255, 255, 0.16);
+    --pos: #14C814;
+    --neg: #FF0000;
+    --acc: var(--pos);
+    background: var(--bg);
+    color: var(--fg);
+  }
+
+  /* ─── Night · slightly softened ──────────────────────── */
+  .v-night-soft {
+    --bg: #0A0A0A;
+    --fg: #EAEAEA;
+    --dim: rgba(234, 234, 234, 0.45);
+    --rule: rgba(234, 234, 234, 0.18);
+    --pos: #2EBE3F;
+    --neg: #E63946;
+    --acc: var(--pos);
+    background: var(--bg);
+    color: var(--fg);
+  }
+
+  /* ─── Day · current colors ───────────────────────────── */
+  .v-day-current {
+    --bg: #F5F5F5;
+    --fg: #000000;
+    --dim: rgba(0, 0, 0, 0.42);
+    --rule: rgba(0, 0, 0, 0.18);
+    --pos: #14C814;
+    --neg: #FF0000;
+    --acc: var(--pos);
+    background: var(--bg);
+    color: var(--fg);
+  }
+
+  /* ─── Day · refined warm ─────────────────────────────── */
+  .v-day-soft {
+    --bg: #F2EFE9;
+    --fg: #1A1A1A;
+    --dim: rgba(26, 26, 26, 0.42);
+    --rule: rgba(26, 26, 26, 0.16);
+    --pos: #1F9E2C;
+    --neg: #C9303D;
+    --acc: var(--pos);
+    background: var(--bg);
+    color: var(--fg);
+  }
+
+  /* ─── Clock ──────────────────────────────────────────── */
+  .clock {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-bottom: 26px;
+  }
+  .clock .cell { display: flex; flex-direction: column; align-items: flex-start; }
+  .clock .time {
+    font-family: "TechBold", "MajorMono", monospace;
+    font-size: 52px;
+    line-height: 1;
+    letter-spacing: 0.03em;
+    color: var(--fg);
+  }
+  .clock .city {
+    font-family: "MajorMono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: lowercase;
+    color: var(--dim);
+    margin-top: 8px;
+  }
+
+  /* ─── Section headers ────────────────────────────────── */
+  .section { margin-bottom: 22px; }
+  .section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: "MajorMono", monospace;
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    text-transform: lowercase;
+    color: var(--fg);
+    margin-bottom: 6px;
+  }
+  .section-head .left { display: inline-flex; align-items: center; gap: 9px; }
+  .section-head .right { color: var(--dim); font-size: 10px; }
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--acc);
+    display: inline-block;
+  }
+  .rule {
+    height: 1px;
+    background: var(--rule);
+    margin-bottom: 12px;
+  }
+
+  /* ─── Crypto rows ────────────────────────────────────── */
+  .row {
+    font-family: "MajorMono", monospace;
+    display: grid;
+    grid-template-columns: 60px 1fr 80px;
+    gap: 10px;
+    align-items: baseline;
+    font-size: 17px;
+    line-height: 1.55;
+  }
+  .row .sym { color: var(--fg); text-transform: lowercase; }
+  .row .val { color: var(--fg); text-align: right; letter-spacing: 0.02em; }
+  .row .delta { font-size: 13px; text-align: right; color: var(--dim); }
+  .row .delta.pos { color: var(--pos); }
+  .row .delta.neg { color: var(--neg); }
+  .row .delta .glyph { margin-right: 2px; }
+
+  /* ─── Transit ────────────────────────────────────────── */
+  .stop {
+    font-family: "MajorMono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: lowercase;
+    color: var(--dim);
+    margin-top: 4px;
+    margin-bottom: 6px;
+  }
+  .bus-time {
+    font-family: "MajorMono", monospace;
+    font-size: 22px;
+    line-height: 1.45;
+    color: var(--fg);
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .bus-time.late .t { color: var(--neg); }
+  .bus-time .delay {
+    color: var(--dim);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+  }
+
+  /* ─── Weather ────────────────────────────────────────── */
+  .weather {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: baseline;
+    gap: 14px;
+  }
+  .weather .cond {
+    font-family: "MajorMono", monospace;
+    font-size: 18px;
+    color: var(--fg);
+    text-transform: lowercase;
+  }
+  .weather .pollen {
+    font-family: "MajorMono", monospace;
+    font-size: 13px;
+    color: var(--dim);
+    text-align: right;
+    letter-spacing: 0.08em;
+  }
+  .weather .pollen .v { color: var(--fg); }
+
+  /* ─── Power ──────────────────────────────────────────── */
+  .power {
+    font-family: "MajorMono", monospace;
+    font-size: 16px;
+    color: var(--fg);
+    display: flex;
+    justify-content: space-between;
+  }
+  .power .v { letter-spacing: 0.04em; }
+  .power .v .unit { color: var(--dim); font-size: 12px; margin-left: 4px; }
+
+  /* ─── Footer note ─────────────────────────────────── */
+  .footnote {
+    font-family: "MajorMono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: #555;
+    padding: 0 4px;
+    line-height: 1.6;
+  }
+  .swatches { display: flex; gap: 6px; margin-top: 4px; }
+  .sw {
+    width: 14px; height: 14px;
+    border: 1px solid #333;
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>screen-app · refined chrome · current palette ± slight tuning</h1>
+    <span class="hint">night · day · current vs soft</span>
+  </header>
+
+  <div class="grid">
+
+    <!-- ════════════════════════════ 01 night · current ════════════════════════════ -->
+    <div class="col">
+      <div class="col-label"><span>night · current</span><span class="num">01</span></div>
+      <div class="panel v-night-current">
+        <div class="clock">
+          <div class="cell"><span class="time">17:42</span><span class="city">ber</span></div>
+          <div class="cell"><span class="time">19:42</span><span class="city">mosc</span></div>
+          <div class="cell"><span class="time">11:42</span><span class="city">wash</span></div>
+        </div>
+        <div class="section">
+          <div class="section-head"><span class="left"><span class="dot"></span>markets · live</span><span class="right">24h</span></div>
+          <div class="rule"></div>
+          <div class="row"><span class="sym">btc</span><span class="val">94.31k</span><span class="delta pos"><span class="glyph">▲</span>1.8%</span></div>
+          <div class="row"><span class="sym">eth</span><span class="val">3.42k</span><span class="delta neg"><span class="glyph">▼</span>0.4%</span></div>
+          <div class="row"><span class="sym">sol</span><span class="val">178.40</span><span class="delta pos"><span class="glyph">▲</span>0.9%</span></div>
+          <div class="row"><span class="sym">xrp</span><span class="val">2.41</span><span class="delta neg"><span class="glyph">▼</span>2.1%</span></div>
+          <div class="row"><span class="sym">ape</span><span class="val">1.08</span><span class="delta pos"><span class="glyph">▲</span>5.4%</span></div>
+          <div class="row"><span class="sym">ray</span><span class="val">4.22</span><span class="delta neg"><span class="glyph">▼</span>0.7%</span></div>
+        </div>
+        <div class="section">
+          <div class="section-head"><span class="left"><span class="dot"></span>transit · 784</span><span class="right">dep</span></div>
+          <div class="rule"></div>
+          <div class="stop">neuss hbf</div>
+          <div class="bus-time"><span class="t">17:48</span></div>
+          <div class="bus-time late"><span class="t">18:18</span><span class="delay">+05</span></div>
+          <div class="bus-time"><span class="t">18:48</span></div>
+        </div>
+        <div class="section">
+          <div class="section-head"><span class="left"><span class="dot"></span>weather · neuss</span><span class="right">12°c</span></div>
+          <div class="rule"></div>
+          <div class="weather">
+            <span class="cond">cloudy</span>
+            <span class="pollen">g<span class="v">2</span> · b<span class="v">1</span></span>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-head"><span class="left"><span class="dot"></span>power</span><span class="right">now</span></div>
+          <div class="rule"></div>
+          <div class="power"><span>load</span><span class="v">412<span class="unit">w</span></span></div>
+        </div>
+      </div>
+      <div class="footnote">
+        bg #000 · fg #FFF · pos #14C814 · neg #FF0000
+        <div class="swatches">
+          <span class="sw" style="background:#000"></span>
+          <span class="sw" style="background:#FFF"></span>
+          <span class="sw" style="background:#14C814"></span>
+          <span class="sw" style="background:#FF0000"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════ 02 night · soft ════════════════════════════ -->
+    <div class="col">
+      <div class="col-label"><span>night · soft</span><span class="num">02</span></div>
+      <div class="panel v-night-soft">
+        <div class="clock">
+          <div class="cell"><span class="time">17:42</span><span class="city">ber</span></div>
+          <div class="cell"><span class="time">19:42</span><span class="city">mosc</span></div>
+          <div class="cell"><span class="time">11:42</span><span class="city">wash</span></div>
+        </div>
+        <div class="section">
+          <div class="section-head"><span class="left"><span class="dot"></span>markets · live</span><span class="right">24h</span></div>
+          <div class="rule"></div>
+          <div class="row"><span class="sym">btc</span><span class="val">94.31k</span><span class="delta pos"><span class="glyph">▲</span>1.8%</span></div>
+          <div class="row"><span class="sym">eth</span><span class="val">3.42k</span><span class="delta neg"><span class="glyph">▼</span>0.4%</span></div>
+          <div class="row"><span class="sym">sol</span><span class="val">178.40</span><span class="delta pos"><span class="glyph">▲</span>0.9%</span></div>
+          <div class="row"><span class="sym">xrp</span><span class="val">2.41</span><span class="delta neg"><span class="glyph">▼</span>2.1%</span></div>
+          <div class="row"><span class="sym">ape</span><span class="val">1.08</span><span class="delta pos"><span class="glyph">▲</span>5.4%</span></div>
+          <div class="row"><span class="sym">ray</span><span class="val">4.22</span><span class="delta neg"><span class="glyph">▼</span>0.7%</span></div>
+        </div>
+        <div class="section">
+          <div class="section-head"><span class="left"><span class="dot"></span>transit · 784</span><span class="right">dep</span></div>
+          <div class="rule"></div>
+          <div class="stop">neuss hbf</div>
+          <div class="bus-time"><span class="t">17:48</span></div>
+          <div class="bus-time late"><span class="t">18:18</span><span class="delay">+05</span></div>
+          <div class="bus-time"><span class="t">18:48</span></div>
+        </div>
+        <div class="section">
+          <div class="section-head"><span class="left"><span class="dot"></span>weather · neuss</span><span class="right">12°c</span></div>
+          <div class="rule"></div>
+          <div class="weather">
+            <span class="cond">cloudy</span>
+            <span class="pollen">g<span class="v">2</span> · b<span class="v">1</span></span>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-head"><span class="left"><span class="dot"></span>power</span><span class="right">now</span></div>
+          <div class="rule"></div>
+          <div class="power"><span>load</span><span class="v">412<span class="unit">w</span></span></div>
+        </div>
+      </div>
+      <div class="footnote">
+        bg #0A0A0A · fg #EAEAEA · pos #2EBE3F · neg #E63946
+        <div class="swatches">
+          <span class="sw" style="background:#0A0A0A"></span>
+          <span class="sw" style="background:#EAEAEA"></span>
+          <span class="sw" style="background:#2EBE3F"></span>
+          <span class="sw" style="background:#E63946"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════ 03 day · current ════════════════════════════ -->
+    <div class="col">
+      <div class="col-label"><span>day · current</span><span class="num">03</span></div>
+      <div class="panel v-day-current">
+        <div class="clock">
+          <div class="cell"><span class="time">10:14</span><span class="city">ber</span></div>
+          <div class="cell"><span class="time">12:14</span><span class="city">mosc</span></div>
+          <div class="cell"><span class="time">04:14</span><span class="city">wash</span></div>
+        </div>
+        <div class="section">
+          <div class="section-head"><span class="left"><span class="dot"></span>markets · live</span><span class="right">24h</span></div>
+          <div class="rule"></div>
+          <div class="row"><span class="sym">btc</span><span class="val">94.31k</span><span class="delta pos"><span class="glyph">▲</span>1.8%</span></div>
+          <div class="row"><span class="sym">eth</span><span class="val">3.42k</span><span class="delta neg"><span class="glyph">▼</span>0.4%</span></div>
+          <div class="row"><span class="sym">sol</span><span class="val">178.40</span><span class="delta pos"><span class="glyph">▲</span>0.9%</span></div>
+          <div class="row"><span class="sym">xrp</span><span class="val">2.41</span><span class="delta neg"><span class="glyph">▼</span>2.1%</span></div>
+          <div class="row"><span class="sym">ape</span><span class="val">1.08</span><span class="delta pos"><span class="glyph">▲</span>5.4%</span></div>
+          <div class="row"><span class="sym">ray</span><span class="val">4.22</span><span class="delta neg"><span class="glyph">▼</span>0.7%</span></div>
+        </div>
+        <div class="section">
+          <div class="section-head"><span class="left"><span class="dot"></span>transit · 784</span><span class="right">dep</span></div>
+          <div class="rule"></div>
+          <div class="stop">neuss hbf</div>
+          <div class="bus-time"><span class="t">10:18</span></div>
+          <div class="bus-time late"><span class="t">10:48</span><span class="delay">+05</span></div>
+          <div class="bus-time"><span class="t">11:18</span></div>
+        </div>
+        <div class="section">
+          <div class="section-head"><span class="left"><span class="dot"></span>weather · neuss</span><span class="right">14°c</span></div>
+          <div class="rule"></div>
+          <div class="weather">
+            <span class="cond">partly cloudy</span>
+            <span class="pollen">g<span class="v">2</span> · b<span class="v">1</span></span>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-head"><span class="left"><span class="dot"></span>power</span><span class="right">now</span></div>
+          <div class="rule"></div>
+          <div class="power"><span>load</span><span class="v">412<span class="unit">w</span></span></div>
+        </div>
+      </div>
+      <div class="footnote">
+        bg #F5F5F5 · fg #000 · pos #14C814 · neg #FF0000
+        <div class="swatches">
+          <span class="sw" style="background:#F5F5F5"></span>
+          <span class="sw" style="background:#000"></span>
+          <span class="sw" style="background:#14C814"></span>
+          <span class="sw" style="background:#FF0000"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════ 04 day · soft ════════════════════════════ -->
+    <div class="col">
+      <div class="col-label"><span>day · soft</span><span class="num">04</span></div>
+      <div class="panel v-day-soft">
+        <div class="clock">
+          <div class="cell"><span class="time">10:14</span><span class="city">ber</span></div>
+          <div class="cell"><span class="time">12:14</span><span class="city">mosc</span></div>
+          <div class="cell"><span class="time">04:14</span><span class="city">wash</span></div>
+        </div>
+        <div class="section">
+          <div class="section-head"><span class="left"><span class="dot"></span>markets · live</span><span class="right">24h</span></div>
+          <div class="rule"></div>
+          <div class="row"><span class="sym">btc</span><span class="val">94.31k</span><span class="delta pos"><span class="glyph">▲</span>1.8%</span></div>
+          <div class="row"><span class="sym">eth</span><span class="val">3.42k</span><span class="delta neg"><span class="glyph">▼</span>0.4%</span></div>
+          <div class="row"><span class="sym">sol</span><span class="val">178.40</span><span class="delta pos"><span class="glyph">▲</span>0.9%</span></div>
+          <div class="row"><span class="sym">xrp</span><span class="val">2.41</span><span class="delta neg"><span class="glyph">▼</span>2.1%</span></div>
+          <div class="row"><span class="sym">ape</span><span class="val">1.08</span><span class="delta pos"><span class="glyph">▲</span>5.4%</span></div>
+          <div class="row"><span class="sym">ray</span><span class="val">4.22</span><span class="delta neg"><span class="glyph">▼</span>0.7%</span></div>
+        </div>
+        <div class="section">
+          <div class="section-head"><span class="left"><span class="dot"></span>transit · 784</span><span class="right">dep</span></div>
+          <div class="rule"></div>
+          <div class="stop">neuss hbf</div>
+          <div class="bus-time"><span class="t">10:18</span></div>
+          <div class="bus-time late"><span class="t">10:48</span><span class="delay">+05</span></div>
+          <div class="bus-time"><span class="t">11:18</span></div>
+        </div>
+        <div class="section">
+          <div class="section-head"><span class="left"><span class="dot"></span>weather · neuss</span><span class="right">14°c</span></div>
+          <div class="rule"></div>
+          <div class="weather">
+            <span class="cond">partly cloudy</span>
+            <span class="pollen">g<span class="v">2</span> · b<span class="v">1</span></span>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-head"><span class="left"><span class="dot"></span>power</span><span class="right">now</span></div>
+          <div class="rule"></div>
+          <div class="power"><span>load</span><span class="v">412<span class="unit">w</span></span></div>
+        </div>
+      </div>
+      <div class="footnote">
+        bg #F2EFE9 · fg #1A1A1A · pos #1F9E2C · neg #C9303D
+        <div class="swatches">
+          <span class="sw" style="background:#F2EFE9"></span>
+          <span class="sw" style="background:#1A1A1A"></span>
+          <span class="sw" style="background:#1F9E2C"></span>
+          <span class="sw" style="background:#C9303D"></span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

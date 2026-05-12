@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"image/color"
 	"io"
 	"log"
 	"net/http"
@@ -363,14 +362,22 @@ func (ui *BusUi) Init() {
 }
 
 func (ui *BusUi) Bounds() (width, height int) {
-	return config.Width, (fontHeight + linePadding) * 5
+	return config.Width, sectionHeaderHeight + 32 + 24 + (fontHeight+linePadding)*3 + 50
 }
 
 func (ui *BusUi) Draw() *ebiten.Image {
 	ui.screen.Fill(bgColor)
 
+	headerLabel := "transit"
+	if config.Bus.LineNumber != "" {
+		headerLabel = "transit · " + config.Bus.LineNumber
+	}
+	contentY := drawSectionHeader(ui.screen, headerLabel, "dep", 0)
+
 	for i, stop := range config.Bus.Stops {
-		text.Draw(ui.screen, stop.Name, defaultFont, fontWidth*2+fontWidth*7*i, fontHeight, textColor)
+		stopX := fontWidth*7*i + fontWidth/2
+		text.Draw(ui.screen, stop.Name, tinyFont, stopX, contentY+32, dimColor)
+
 		times := busTimes[stop.Name]
 		for j, entry := range times {
 			if j >= 3 {
@@ -378,10 +385,11 @@ func (ui *BusUi) Draw() *ebiten.Image {
 			}
 			c := textColor
 			if entry.delay.Minutes() > 3 {
-				c = color.RGBA{255, 0, 0, 255}
+				c = negColor
 			}
 
-			text.Draw(ui.screen, entry.time.Format("15:04"), defaultFont, fontWidth*2+fontWidth*7*i, (fontHeight+linePadding)*(j+2), c)
+			y := contentY + 32 + 24 + fontHeight + (fontHeight+linePadding)*j
+			text.Draw(ui.screen, entry.time.Format("15:04"), defaultFont, stopX, y, c)
 		}
 	}
 

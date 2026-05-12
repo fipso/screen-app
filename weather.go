@@ -185,43 +185,36 @@ func (ui *WeatherUi) Init() {
 }
 
 func (ui *WeatherUi) Bounds() (width, height int) {
-	return config.Width, fontHeight * 6
+	return config.Width, sectionHeaderHeight + fontHeight*6
 }
 
 func (ui *WeatherUi) Draw() *ebiten.Image {
 	ui.screen.Fill(bgColor)
 
 	if weatherCurrentData == nil {
+		drawSectionHeader(ui.screen, "weather", "—", 0)
 		return ui.screen
 	}
 
-	// Find closest weather data
-	// currentWeather := weatherData.Weather[0]
-	// for _, w := range weatherData.Weather {
-	// 	if w.Timestamp.After(time.Now()) {
-	// 		currentWeather = w
-	// 		break
-	// 	}
-	// }
+	rightLabel := fmt.Sprintf("%.1f°c", weatherCurrentData.Weather.Temperature)
+	contentY := drawSectionHeader(ui.screen, "weather", rightLabel, 0)
 
-	// Draw weather text
-	weatherS := fmt.Sprintf(
-		"%.1f°c\n%s",
-		weatherCurrentData.Weather.Temperature,
+	text.Draw(ui.screen,
 		weatherCurrentData.Weather.Condition,
-	)
-	text.Draw(ui.screen, weatherS, defaultFont, fontWidth*2, fontHeight, textColor)
-	// Draw weather icon
-	text.Draw(
-		ui.screen,
-		icon2Char(weatherCurrentData.Weather.Icon),
-		weatherFont,
-		fontWidth*6,
-		fontHeight*4,
+		defaultFont,
+		0,
+		contentY+fontHeight,
 		textColor,
 	)
 
-	// Draw pollen
+	text.Draw(ui.screen,
+		icon2Char(weatherCurrentData.Weather.Icon),
+		weatherFont,
+		fontWidth*5,
+		contentY+fontHeight*4,
+		textColor,
+	)
+
 	pollenS := ""
 	pollenKeys := []string{"g", "b", "h"}
 	for _, key := range pollenKeys {
@@ -231,7 +224,7 @@ func (ui *WeatherUi) Draw() *ebiten.Image {
 		}
 		pollenS += fmt.Sprintf("%s%s\n", key, v)
 	}
-	text.Draw(ui.screen, pollenS, defaultFont, fontWidth*12, fontHeight*4, textColor)
+	text.Draw(ui.screen, pollenS, defaultFont, fontWidth*12, contentY+fontHeight*4, dimColor)
 
 	return ui.screen
 }
