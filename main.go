@@ -55,6 +55,10 @@ func main() {
 	doorService := DoorService{}
 	go doorService.Run()
 
+	if len(config.Energy.Devices) > 0 {
+		startEnergyService()
+	}
+
 	automationService := AutomationService{}
 	go automationService.Run()
 

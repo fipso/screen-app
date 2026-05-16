@@ -35,7 +35,49 @@ type Config struct {
 		Devices         []RefossEnergyDeviceConfig
 	}
 	Automations []AutomationConfig
+	Room        RoomConfig
 }
+
+type RoomConfig struct {
+	Width         int
+	Height        int
+	LabelFontSize int
+	ValueFontSize int
+	Things        []RoomThing
+}
+
+type RoomThing struct {
+	Label         string
+	Shape         RoomThingShape
+	X, Y          int
+	W, H          int
+	Radius        int
+	RefossUUID    string
+	RefossChannel int
+	HideEnergy    bool
+	EnergyAnchor  RoomEnergyAnchor
+	MqttTemp      string
+	MqttRh        string
+	MqttExtra     string
+	ExtraLabel    string
+}
+
+type RoomThingShape string
+
+const (
+	RoomShapeRect   RoomThingShape = "rect"
+	RoomShapeCircle RoomThingShape = "circle"
+	RoomShapeNone   RoomThingShape = ""
+)
+
+type RoomEnergyAnchor string
+
+const (
+	EnergyAnchorBottom RoomEnergyAnchor = "" // default: stacked under label
+	EnergyAnchorTop    RoomEnergyAnchor = "top"
+	EnergyAnchorLeft   RoomEnergyAnchor = "left"
+	EnergyAnchorRight  RoomEnergyAnchor = "right"
+)
 
 type BusStopConfig struct {
 	Name        string
@@ -96,6 +138,7 @@ const (
 	LayoutElementClock   = LayoutElementType("clock")
 	LayoutElementCrypto  = LayoutElementType("crypto")
 	LayoutElementEnergy  = LayoutElementType("energy")
+	LayoutElementRoom    = LayoutElementType("room")
 )
 
 func loadConfig() {
@@ -141,5 +184,17 @@ func loadConfig() {
 	}
 	if config.Energy.MaxHistoryHours == 0 {
 		config.Energy.MaxHistoryHours = 6
+	}
+	if config.Room.Width == 0 {
+		config.Room.Width = config.Width
+	}
+	if config.Room.Height == 0 {
+		config.Room.Height = 800
+	}
+	if config.Room.LabelFontSize == 0 {
+		config.Room.LabelFontSize = 26
+	}
+	if config.Room.ValueFontSize == 0 {
+		config.Room.ValueFontSize = 20
 	}
 }

@@ -78,11 +78,10 @@ type RefossDeviceConfigResponse struct {
 type EnergyUi struct {
 	screen *ebiten.Image
 
-	deviceStates []*EnergySensorState
-	chartImage   *ebiten.Image
-	graph        *chart.Chart
-	renderBuf    *bytes.Buffer
-	rgbaBuf      *image.RGBA
+	chartImage *ebiten.Image
+	graph      *chart.Chart
+	renderBuf  *bytes.Buffer
+	rgbaBuf    *image.RGBA
 }
 
 type EnergySensorState struct {
@@ -90,6 +89,54 @@ type EnergySensorState struct {
 	timestamps   []time.Time
 	values       []float64
 	series       *chart.TimeSeries
+	togglex      map[int]bool
+}
+
+var (
+	energySensors      []*EnergySensorState
+	energySensorByUUID map[string]*EnergySensorState
+)
+
+// startEnergyService synchronously builds the shared sensor slice/map (so any
+// readers — EnergyUi, RoomUi — see a populated set at Init time) and then
+// spawns one polling goroutine per device.
+func startEnergyService() {
+	energySensorByUUID = map[string]*EnergySensorState{}
+	for _, device := range config.Energy.Devices {
+		s := &EnergySensorState{
+			deviceConfig: device,
+			timestamps:   []time.Time{},
+			values:       []float64{},
+			togglex:      map[int]bool{},
+			series: &chart.TimeSeries{
+				Name: device.Name,
+				Style: chart.Style{
+					StrokeWidth: 1.4,
+				},
+			},
+		}
+		energySensors = append(energySensors, s)
+		energySensorByUUID[device.UUID] = s
+	}
+
+	for _, device := range energySensors {
+		go func(s *EnergySensorState) {
+			for {
+				if err := s.fetchState(); err != nil {
+					log.Println("Error polling refoss power:", s.deviceConfig.Address, err)
+				}
+				if err := s.fetchToggleX(); err != nil {
+					log.Println("Error polling refoss togglex:", s.deviceConfig.Address, err)
+				}
+				time.Sleep(time.Millisecond * 500)
+			}
+		}(device)
+	}
+}
+
+func getEnergyState(uuid string) (*EnergySensorState, bool) {
+	s, ok := energySensorByUUID[uuid]
+	return s, ok
 }
 
 func (ui *EnergyUi) Init() {
@@ -99,22 +146,13 @@ func (ui *EnergyUi) Init() {
 	ui.renderBuf = bytes.NewBuffer(make([]byte, 0, 1024*1024))
 	ui.rgbaBuf = image.NewRGBA(image.Rect(0, 0, width-50, 800))
 
-	for _, device := range config.Energy.Devices {
-		ui.deviceStates = append(ui.deviceStates, &EnergySensorState{
-			deviceConfig: device,
-			timestamps:   []time.Time{},
-			values:       []float64{},
-			series: &chart.TimeSeries{
-				Name: device.Name,
-				Style: chart.Style{
-					StrokeWidth: 1.4,
-				},
-			},
-		})
-	}
-
 	ui.initGraph()
-	go ui.pollDeviceStates()
+	go func() {
+		for {
+			time.Sleep(time.Millisecond * 500)
+			ui.updateGraph()
+		}
+	}()
 }
 
 func (ui *EnergyUi) Bounds() (width, height int) {
@@ -139,7 +177,7 @@ func (ui *EnergyUi) Draw() *ebiten.Image {
 	})
 
 	usage := 0.0
-	for _, device := range ui.deviceStates {
+	for _, device := range energySensors {
 		if len(device.series.YValues) == 0 {
 			continue
 		}
@@ -155,28 +193,6 @@ func (ui *EnergyUi) Draw() *ebiten.Image {
 	)
 
 	return ui.screen
-}
-
-func (ui *EnergyUi) pollDeviceStates() {
-	for _, device := range ui.deviceStates {
-		go func(s *EnergySensorState) {
-			for {
-				err := s.fetchState()
-				if err != nil {
-					log.Println("Error polling refoss device:", s.deviceConfig.Address, err)
-				}
-				time.Sleep(time.Millisecond*500)
-			}
-		}(device)
-	}
-
-	// Update chart
-	go func() {
-		for {
-			time.Sleep(time.Millisecond*500)
-			ui.updateGraph()
-		}
-	}()
 }
 
 // generateRandomString creates a random string of specified length
@@ -302,6 +318,103 @@ func (e *EnergySensorState) fetchState() error {
 	return nil
 }
 
+// fetchToggleX queries Appliance.Control.ToggleX and stores per-channel
+// on/off state in e.togglex. Single-channel devices return a single object,
+// multi-channel devices return an array — both shapes are handled.
+func (e *EnergySensorState) fetchToggleX() error {
+	messageId := generateMessageId()
+	timestamp := time.Now().Unix()
+
+	key, ok := config.Energy.Profiles[e.deviceConfig.Profile]
+	if !ok {
+		return fmt.Errorf("meross profile %s not found", e.deviceConfig.Profile)
+	}
+	sign := generateSign(messageId, key, fmt.Sprintf("%d", timestamp))
+
+	url := fmt.Sprintf("%s/config", e.deviceConfig.Address)
+
+	reqData := struct {
+		Header  RefossDeviceConfigHeader `json:"header"`
+		Payload struct{}                 `json:"payload"`
+	}{
+		Header: RefossDeviceConfigHeader{
+			Method:         "GET",
+			From:           url,
+			MessageID:      messageId,
+			PayloadVersion: 1,
+			Namespace:      "Appliance.Control.ToggleX",
+			UUID:           e.deviceConfig.UUID,
+			Sign:           sign,
+			TriggerSrc:     "GoClient",
+			Timestamp:      int(timestamp),
+		},
+	}
+	reqDataJson, err := json.Marshal(reqData)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewReader(reqDataJson))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("Proxy-Connection", "keep-alive")
+	req.Header.Set("User-Agent", "intellect_socket/1.10.0 (iPhone; iOS 18.3.2; Scale/3.00)")
+	req.Header.Set("Accept-Language", "en-DE;q=1, de-DE;q=0.9")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	var envelope struct {
+		Payload struct {
+			Togglex json.RawMessage `json:"togglex"`
+			All     struct {
+				Digest struct {
+					Togglex json.RawMessage `json:"togglex"`
+				} `json:"digest"`
+			} `json:"all"`
+		} `json:"payload"`
+	}
+	if err := json.Unmarshal(body, &envelope); err != nil {
+		return err
+	}
+	raw := envelope.Payload.Togglex
+	if len(raw) == 0 {
+		raw = envelope.Payload.All.Digest.Togglex
+	}
+	if len(raw) == 0 {
+		return fmt.Errorf("togglex payload empty: %s", string(body))
+	}
+
+	type toggleEntry struct {
+		Channel int `json:"channel"`
+		Onoff   int `json:"onoff"`
+	}
+
+	var arr []toggleEntry
+	if err := json.Unmarshal(raw, &arr); err == nil {
+		for _, t := range arr {
+			e.togglex[t.Channel] = t.Onoff == 1
+		}
+		return nil
+	}
+	var single toggleEntry
+	if err := json.Unmarshal(raw, &single); err == nil {
+		e.togglex[single.Channel] = single.Onoff == 1
+		return nil
+	}
+	return fmt.Errorf("could not parse togglex payload: %s", string(raw))
+}
+
 func (d *RefossEnergyDeviceConfig) SetPlugState(on bool) error {
 	messageId := generateMessageId()
 	timestamp := time.Now().Unix()
@@ -393,13 +506,13 @@ func (ui *EnergyUi) initGraph() {
 				Max: 800,
 			},
 		},
-		Series: make([]chart.Series, len(ui.deviceStates)),
+		Series: make([]chart.Series, len(energySensors)),
 		Width:  width - 50,
 		Height: 800,
 	}
 
 	// Add all series to the chart
-	for i, device := range ui.deviceStates {
+	for i, device := range energySensors {
 		ui.graph.Series[i] = device.series
 	}
 
@@ -427,7 +540,7 @@ func (ui *EnergyUi) updateGraph() {
 	})}
 
 	// Update series data pointers
-	for _, device := range ui.deviceStates {
+	for _, device := range energySensors {
 		device.series.XValues = device.timestamps
 		if len(device.deviceConfig.Aggregate) == 0 {
 			device.series.YValues = device.values
@@ -443,14 +556,8 @@ func (ui *EnergyUi) updateGraph() {
 			newValue := v
 			for _, aggr := range device.deviceConfig.Aggregate {
 				// Find other device by uuid
-				var otherDevice *EnergySensorState
-				for _, d := range ui.deviceStates {
-					if d.deviceConfig.UUID == aggr.Device {
-						otherDevice = d
-						break
-					}
-				}
-				if otherDevice == nil {
+				otherDevice, ok := energySensorByUUID[aggr.Device]
+				if !ok {
 					// Other device not found skip aggregation task
 					continue
 				}
