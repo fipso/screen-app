@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/colorm"
 )
 
 type SwitchLayout struct {
@@ -14,6 +13,8 @@ type SwitchLayout struct {
 	transitionFrame int
 	transition      bool
 	image           *ebiten.Image
+	curSnap         *ebiten.Image
+	nextSnap        *ebiten.Image
 }
 
 func (l *SwitchLayout) Bounds() (width, height int) {
@@ -42,36 +43,33 @@ func (l *SwitchLayout) Init() {
 func (l *SwitchLayout) Draw() *ebiten.Image {
 	l.image.Fill(bgColor)
 
-	child := l.children[l.currentIndex]
-	childImage := child.Draw()
-
 	if l.transition {
-		nextChild := l.children[(l.currentIndex+1)%len(l.children)]
-		nextChildImage := nextChild.Draw()
+		// Snapshot both children at the start of the slide so we don't pay
+		// for their full Draw() on every one of the ~90 transition frames.
+		if l.curSnap == nil {
+			l.curSnap = l.children[l.currentIndex].Draw()
+			l.nextSnap = l.children[(l.currentIndex+1)%len(l.children)].Draw()
+		}
 
 		pos := ebiten.GeoM{}
-
-		// Draw the current child
 		pos.Translate(float64(l.transitionFrame), 0)
-		colorm.DrawImage(l.image, childImage, colorm.ColorM{}, &colorm.DrawImageOptions{
-			GeoM: pos,
-		})
+		l.image.DrawImage(l.curSnap, &ebiten.DrawImageOptions{GeoM: pos})
 
-		// Draw the next child
 		pos.Reset()
 		pos.Translate(float64(l.transitionFrame-config.Width), 0)
-		colorm.DrawImage(l.image, nextChildImage, colorm.ColorM{}, &colorm.DrawImageOptions{
-			GeoM: pos,
-		})
+		l.image.DrawImage(l.nextSnap, &ebiten.DrawImageOptions{GeoM: pos})
 
 		l.transitionFrame += 12
 
-		if l.transitionFrame == config.Width {
+		if l.transitionFrame >= config.Width {
 			l.currentIndex = (l.currentIndex + 1) % len(l.children)
 			l.transition = false
 			l.transitionFrame = 0
+			l.curSnap = nil
+			l.nextSnap = nil
 		}
 	} else {
+		childImage := l.children[l.currentIndex].Draw()
 		l.image.DrawImage(childImage, &ebiten.DrawImageOptions{})
 	}
 

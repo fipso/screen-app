@@ -192,12 +192,11 @@ func (ui *WeatherUi) Draw() *ebiten.Image {
 	ui.screen.Fill(bgColor)
 
 	if weatherCurrentData == nil {
-		drawSectionHeader(ui.screen, "weather", "—", 0)
+		drawSectionHeader(ui.screen, "weather", "", 0)
 		return ui.screen
 	}
 
-	rightLabel := fmt.Sprintf("%.1f°c", weatherCurrentData.Weather.Temperature)
-	contentY := drawSectionHeader(ui.screen, "weather", rightLabel, 0)
+	contentY := drawSectionHeader(ui.screen, "weather", "", 0)
 
 	text.Draw(ui.screen,
 		weatherCurrentData.Weather.Condition,
@@ -212,6 +211,14 @@ func (ui *WeatherUi) Draw() *ebiten.Image {
 		weatherFont,
 		fontWidth*5,
 		contentY+fontHeight*4,
+		textColor,
+	)
+
+	text.Draw(ui.screen,
+		fmt.Sprintf("%.1f°c", weatherCurrentData.Weather.Temperature),
+		defaultFont,
+		fontWidth*5,
+		contentY+fontHeight*5+linePadding,
 		textColor,
 	)
 

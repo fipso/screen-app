@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"image"
+	"image/color"
 	"log"
 	"math"
 	"sort"
@@ -13,6 +15,7 @@ import (
 	"github.com/adshao/go-binance/v2"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 const FIAT_SYMBOL = "USDT"
@@ -166,14 +169,14 @@ func (ui *CryptoUi) Draw() *ebiten.Image {
 	for i, currency := range prices {
 		c := textColor
 		delta := calcDelta(currency, time.Hour*24)
-		glyph := ""
+		dir := 0
 		switch {
 		case delta > 0:
 			c = posColor
-			glyph = "▲"
+			dir = 1
 		case delta < 0:
 			c = negColor
-			glyph = "▼"
+			dir = -1
 		}
 
 		currency.mu.Lock()
@@ -197,10 +200,70 @@ func (ui *CryptoUi) Draw() *ebiten.Image {
 		prefix := fmt.Sprintf("%-5s %-8s", strings.ToLower(currency.symbol1), value)
 		text.Draw(ui.screen, prefix, defaultFont, 0, y, textColor)
 
-		deltaStr := fmt.Sprintf("%s %.1f%%", glyph, pct)
+		deltaStr := fmt.Sprintf("%.1f%%", pct)
 		b := text.BoundString(smallFont, deltaStr)
-		text.Draw(ui.screen, deltaStr, smallFont, contentWidth-b.Dx(), y, c)
+		deltaX := contentWidth - b.Dx()
+		text.Draw(ui.screen, deltaStr, smallFont, deltaX, y, c)
+
+		if dir != 0 {
+			const triSize = 20
+			triRight := float32(deltaX - 12)
+			triLeft := triRight - triSize
+			triCenter := (triLeft + triRight) / 2
+			// Vertically align the triangle on the text x-height (~baseline - 14px).
+			triMid := float32(y) - 14
+			triHalf := float32(triSize) * 0.5
+			if dir > 0 {
+				drawFilledTriangle(ui.screen,
+					triCenter, triMid-triHalf,
+					triLeft, triMid+triHalf,
+					triRight, triMid+triHalf,
+					c)
+			} else {
+				drawFilledTriangle(ui.screen,
+					triLeft, triMid-triHalf,
+					triRight, triMid-triHalf,
+					triCenter, triMid+triHalf,
+					c)
+			}
+		}
 	}
 
 	return ui.screen
+}
+
+var (
+	whitePixelImage = func() *ebiten.Image {
+		img := ebiten.NewImage(3, 3)
+		pix := make([]byte, 4*3*3)
+		for i := range pix {
+			pix[i] = 0xff
+		}
+		img.WritePixels(pix)
+		return img
+	}()
+	whitePixelSub = whitePixelImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image)
+)
+
+func drawFilledTriangle(dst *ebiten.Image, x0, y0, x1, y1, x2, y2 float32, clr color.Color) {
+	var path vector.Path
+	path.MoveTo(x0, y0)
+	path.LineTo(x1, y1)
+	path.LineTo(x2, y2)
+	path.Close()
+	vs, is := path.AppendVerticesAndIndicesForFilling(nil, nil)
+
+	r, g, b, a := clr.RGBA()
+	for i := range vs {
+		vs[i].SrcX = 1
+		vs[i].SrcY = 1
+		vs[i].ColorR = float32(r) / 0xffff
+		vs[i].ColorG = float32(g) / 0xffff
+		vs[i].ColorB = float32(b) / 0xffff
+		vs[i].ColorA = float32(a) / 0xffff
+	}
+	op := &ebiten.DrawTrianglesOptions{}
+	op.ColorScaleMode = ebiten.ColorScaleModePremultipliedAlpha
+	op.AntiAlias = true
+	dst.DrawTriangles(vs, is, whitePixelSub, op)
 }

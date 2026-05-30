@@ -1,6 +1,9 @@
 package main
 
 import (
+	"unicode"
+	"unicode/utf8"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
 	"github.com/hajimehoshi/ebiten/v2/vector"
@@ -21,8 +24,12 @@ func drawSectionHeader(img *ebiten.Image, label, right string, y int) int {
 	contentWidth := img.Bounds().Dx() - 2*paddingX
 	const baseline = 36
 
+	if r, size := utf8.DecodeRuneInString(label); r != utf8.RuneError {
+		label = string(unicode.ToUpper(r)) + label[size:]
+	}
+
 	vector.DrawFilledCircle(img, 8, float32(y+baseline-9), 7, accentColor, true)
-	text.Draw(img, label, smallFont, 28, y+baseline, textColor)
+	text.Draw(img, label, smallBoldFont, 28, y+baseline, textColor)
 
 	if right != "" {
 		b := text.BoundString(smallFont, right)

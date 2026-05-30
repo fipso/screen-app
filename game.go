@@ -27,12 +27,13 @@ var (
 )
 
 var (
-	defaultFont font.Face = basicfont.Face7x13
-	weatherFont font.Face = basicfont.Face7x13
-	clockFont   font.Face = basicfont.Face7x13
-	tinyFont    font.Face = basicfont.Face7x13
-	smallFont   font.Face = basicfont.Face7x13
-	faFont      font.Face = basicfont.Face7x13
+	defaultFont   font.Face = basicfont.Face7x13
+	weatherFont   font.Face = basicfont.Face7x13
+	clockFont     font.Face = basicfont.Face7x13
+	tinyFont      font.Face = basicfont.Face7x13
+	smallFont     font.Face = basicfont.Face7x13
+	smallBoldFont font.Face = basicfont.Face7x13
+	faFont        font.Face = basicfont.Face7x13
 )
 
 var (
@@ -192,6 +193,7 @@ func runGameUI() {
 	clockFont = loadFont("assets/fonts/technology.bold.ttf", 100)
 	tinyFont = loadFont("assets/fonts/OpenSans-Regular.ttf", 32)
 	smallFont = loadFont("assets/fonts/OpenSans-Regular.ttf", 48)
+	smallBoldFont = loadFont("assets/fonts/OpenSans-Bold.ttf", 48)
 	faFont = loadFont("assets/fonts/fa400.otf", 48*2)
 
 	ebiten.SetWindowSize(config.Width, config.Height)

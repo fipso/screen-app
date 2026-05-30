@@ -12,6 +12,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -89,9 +90,37 @@ type EnergyUi struct {
 
 type EnergySensorState struct {
 	deviceConfig RefossEnergyDeviceConfig
-	timestamps   []time.Time
-	values       []float64
-	series       *chart.TimeSeries
+
+	// mu guards timestamps, values, and lastDisplayedValue. fetchState
+	// writes; updateGraph snapshots; Draw reads lastDisplayedValue.
+	mu                 sync.Mutex
+	timestamps         []time.Time
+	values             []float64
+	lastDisplayedValue float64
+
+	series *chart.TimeSeries
+}
+
+func (e *EnergySensorState) snapshot() ([]time.Time, []float64) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	ts := make([]time.Time, len(e.timestamps))
+	copy(ts, e.timestamps)
+	vs := make([]float64, len(e.values))
+	copy(vs, e.values)
+	return ts, vs
+}
+
+func (e *EnergySensorState) setDisplayedValue(v float64) {
+	e.mu.Lock()
+	e.lastDisplayedValue = v
+	e.mu.Unlock()
+}
+
+func (e *EnergySensorState) displayedValue() float64 {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.lastDisplayedValue
 }
 
 func (ui *EnergyUi) Init() {
@@ -128,13 +157,10 @@ func (ui *EnergyUi) Draw() *ebiten.Image {
 
 	usage := 0.0
 	for _, device := range ui.deviceStates {
-		if len(device.series.YValues) == 0 {
-			continue
-		}
-		usage += device.series.YValues[len(device.series.YValues)-1]
+		usage += device.displayedValue()
 	}
 
-	contentY := drawSectionHeader(ui.screen, "power", fmt.Sprintf("%dw", int(usage)), 0)
+	contentY := drawSectionHeader(ui.screen, "power", "", 0)
 
 	pos := ebiten.GeoM{}
 	pos.Translate(0, float64(contentY+20))
@@ -177,33 +203,66 @@ func (ui *EnergyUi) pollDeviceStates() {
 	}()
 }
 
-// chartMaxPoints caps how many samples we hand to go-chart per series. With
-// 6h × 0.5 Hz we have ~10k points per device; the chart canvas is ~1k pixels
-// wide so anything beyond a few hundred is wasted work + GC pressure.
-const chartMaxPoints = 600
+// chartBuckets is the number of time-buckets we collapse the series into;
+// each bucket emits its min and max so spikes survive. Bucketing is anchored
+// on time (not slice index) so the chart doesn't walk sideways as old
+// samples drop off the front.
+const chartBuckets = 600
 
 func decimate(timestamps []time.Time, values []float64) ([]time.Time, []float64) {
 	n := len(values)
-	if n <= chartMaxPoints {
+	if n <= chartBuckets {
 		return timestamps, values
 	}
-	stride := n / chartMaxPoints
-	if stride < 1 {
-		stride = 1
+
+	startNs := timestamps[0].UnixNano()
+	span := timestamps[n-1].UnixNano() - startNs
+	if span <= 0 {
+		return timestamps, values
 	}
-	outLen := (n + stride - 1) / stride
-	xs := make([]time.Time, 0, outLen)
-	ys := make([]float64, 0, outLen)
-	for i := 0; i < n; i += stride {
-		xs = append(xs, timestamps[i])
-		ys = append(ys, values[i])
+	bucketNs := span / int64(chartBuckets)
+	if bucketNs <= 0 {
+		bucketNs = 1
 	}
-	// Always keep the most recent sample so the right edge of the chart
-	// reflects the latest reading.
-	if len(xs) == 0 || !xs[len(xs)-1].Equal(timestamps[n-1]) {
-		xs = append(xs, timestamps[n-1])
-		ys = append(ys, values[n-1])
+
+	xs := make([]time.Time, 0, chartBuckets*2)
+	ys := make([]float64, 0, chartBuckets*2)
+
+	flush := func(start, end int) {
+		minIdx, maxIdx := start, start
+		for j := start + 1; j < end; j++ {
+			if values[j] < values[minIdx] {
+				minIdx = j
+			}
+			if values[j] > values[maxIdx] {
+				maxIdx = j
+			}
+		}
+		if minIdx == maxIdx {
+			xs = append(xs, timestamps[minIdx])
+			ys = append(ys, values[minIdx])
+			return
+		}
+		a, b := minIdx, maxIdx
+		if a > b {
+			a, b = b, a
+		}
+		xs = append(xs, timestamps[a], timestamps[b])
+		ys = append(ys, values[a], values[b])
 	}
+
+	bucketStart := 0
+	currentBucket := int64(0)
+	for i := 1; i < n; i++ {
+		b := (timestamps[i].UnixNano() - startNs) / bucketNs
+		if b != currentBucket {
+			flush(bucketStart, i)
+			bucketStart = i
+			currentBucket = b
+		}
+	}
+	flush(bucketStart, n)
+
 	return xs, ys
 }
 
@@ -316,16 +375,20 @@ func (e *EnergySensorState) fetchState() error {
 
 	now := time.Now()
 	p := float64(resData.Payload.Electricity.Power) / 1000
+
+	e.mu.Lock()
 	e.values = append(e.values, p)
 	e.timestamps = append(e.timestamps, now)
-
-	// Get history length
-	diff := now.Sub(e.timestamps[0])
-	if diff > time.Hour*time.Duration(config.Energy.MaxHistoryHours) {
-		// Drop oldest value
-		e.values = e.values[1:]
-		e.timestamps = e.timestamps[1:]
+	if now.Sub(e.timestamps[0]) > time.Hour*time.Duration(config.Energy.MaxHistoryHours) {
+		// shift in place so the backing array stays a stable size; using
+		// e.values[1:] would walk the slice header forward and force a
+		// periodic full realloc once cap is exhausted.
+		copy(e.values, e.values[1:])
+		e.values = e.values[:len(e.values)-1]
+		copy(e.timestamps, e.timestamps[1:])
+		e.timestamps = e.timestamps[:len(e.timestamps)-1]
 	}
+	e.mu.Unlock()
 
 	return nil
 }
@@ -466,59 +529,60 @@ func (ui *EnergyUi) updateGraph() {
 		FontSize:    14,
 	})}
 
-	// Update series data pointers
+	// Snapshot once under each device's lock so the heavy aggregation and
+	// chart render below run on stable copies — no lock held during render.
+	type snap struct {
+		ts []time.Time
+		vs []float64
+	}
+	snaps := make(map[string]snap, len(ui.deviceStates))
+	for _, d := range ui.deviceStates {
+		ts, vs := d.snapshot()
+		snaps[d.deviceConfig.UUID] = snap{ts: ts, vs: vs}
+	}
+
 	for _, device := range ui.deviceStates {
-		if len(device.deviceConfig.Aggregate) == 0 {
-			xs, ys := decimate(device.timestamps, device.values)
-			device.series.XValues = xs
-			device.series.YValues = ys
-			continue
-		}
+		s := snaps[device.deviceConfig.UUID]
+		values := s.vs
 
-		// Apply aggregation
-		aggregatedValues := make([]float64, len(device.values))
-
-		for i, v := range device.values {
-			t := device.timestamps[i]
-
-			newValue := v
-			for _, aggr := range device.deviceConfig.Aggregate {
-				// Find other device by uuid
-				var otherDevice *EnergySensorState
-				for _, d := range ui.deviceStates {
-					if d.deviceConfig.UUID == aggr.Device {
-						otherDevice = d
-						break
+		if len(device.deviceConfig.Aggregate) > 0 {
+			aggregated := make([]float64, len(s.vs))
+			for i, v := range s.vs {
+				t := s.ts[i]
+				newValue := v
+				for _, aggr := range device.deviceConfig.Aggregate {
+					other, ok := snaps[aggr.Device]
+					if !ok {
+						continue
+					}
+					otherValue := 0.0
+					for j := len(other.ts) - 1; j >= 0; j-- {
+						if !other.ts[j].After(t) {
+							otherValue = other.vs[j]
+							break
+						}
+					}
+					switch aggr.Operation {
+					case AggrOpAdd:
+						newValue += otherValue
+					case AggrOpSub:
+						newValue -= otherValue
 					}
 				}
-				if otherDevice == nil {
-					// Other device not found skip aggregation task
-					continue
-				}
-
-				// Find latest value at or before timestamp of other device
-				otherDeviceValue := 0.0
-				for j := len(otherDevice.timestamps) - 1; j >= 0; j-- {
-					if !otherDevice.timestamps[j].After(t) {
-						otherDeviceValue = otherDevice.values[j]
-						break
-					}
-				}
-
-				switch aggr.Operation {
-				case AggrOpAdd:
-					newValue += otherDeviceValue
-				case AggrOpSub:
-					newValue -= otherDeviceValue
-				}
+				aggregated[i] = newValue
 			}
-
-			aggregatedValues[i] = newValue
+			values = aggregated
 		}
 
-		xs, ys := decimate(device.timestamps, aggregatedValues)
+		xs, ys := decimate(s.ts, values)
 		device.series.XValues = xs
 		device.series.YValues = ys
+
+		last := 0.0
+		if len(values) > 0 {
+			last = values[len(values)-1]
+		}
+		device.setDisplayedValue(last)
 	}
 
 	// Reuse buffer
